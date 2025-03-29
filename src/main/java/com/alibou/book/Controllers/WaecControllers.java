@@ -18,7 +18,7 @@ public class WaecControllers {
     }
 
     @PostMapping("/verify")
-    public ResponseEntity<String> verifyWaecResult(@RequestBody WaecResultsRequest request) {
+    public ResponseEntity<?> verifyWaecResult(@RequestBody WaecResultsRequest request) {
         return waecApiService.verifyResult(request);
     }
 

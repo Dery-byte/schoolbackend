@@ -1,13 +1,13 @@
 package com.alibou.book.Controllers;
 
+import com.alibou.book.DTO.UniversityEligibilityDTO;
 import com.alibou.book.Entity.Program;
+import com.alibou.book.Entity.WaecCandidateEntity;
 import com.alibou.book.Services.EligibilityCheckerService;
+import com.alibou.book.Services.WaecApiService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
 import java.util.List;
@@ -19,10 +19,12 @@ import java.util.Map;
 public class EligibilityController {
 
     @Autowired
-    private EligibilityCheckerService eligibilityCheckerService;
-//    @GetMapping("/check")
-//    public ResponseEntity<Map<String, Object>> checkEligibility(Principal principal) {
-//        return ResponseEntity.ok(eligibilityCheckerService.getEligibleAndAlternativePrograms(principal.getName()));
-//    }
+    private WaecApiService waecApiService;
+
+    @PostMapping("/check-eligibility")
+    public ResponseEntity<List<UniversityEligibilityDTO>> checkEligibility(@RequestBody WaecCandidateEntity candidate) {
+        List<UniversityEligibilityDTO> eligibility = waecApiService.checkEligibility(candidate);
+        return ResponseEntity.ok(eligibility);
+    }
 
 }

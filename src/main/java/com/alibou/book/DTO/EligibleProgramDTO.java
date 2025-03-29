@@ -10,10 +10,13 @@ import java.util.Map;
 public class EligibleProgramDTO {
     private String programName;
     private Map<String, String> cutoffPoints;
+    private double percentageEligibility;
 
-    public EligibleProgramDTO(String programName, Map<String, String> cutoffPoints) {
+
+    public EligibleProgramDTO(String programName, Map<String, String> cutoffPoints, double percentageEligibility) {
         this.programName = programName;
         this.cutoffPoints = cutoffPoints;
+        this.percentageEligibility = percentageEligibility;
     }
 
     // Getters and Setters
