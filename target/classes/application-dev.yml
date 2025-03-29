@@ -1,0 +1,63 @@
+spring:
+  datasource:
+#    url: jdbc:postgresql://localhost:5432/template1
+    url: jdbc:mysql://localhost:3306/school
+    username: root
+    password: EMMARESCUE
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        ddl-auto: update  # Options: create, create-drop, update, validate, none
+        format_sql: true
+        default_schema: farm
+    database:
+    database-platform: org.hibernate.dialect.MySQL8Dialect
+  mail:
+    host: localhost
+    port: 1025
+    username: ali
+    password: ali
+    properties:
+      mail:
+        smtp:
+          trust: "*"
+        auth: true
+        starttls:
+          enabled: true
+        connectiontimeout: 5000
+        timeout: 3000
+        writetimeout: 5000
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: "https://localhost:8080/realms/postgres"
+application:
+  mailing:
+    frontend:
+      activation-url: http://localhost:4200/activate-account
+      jwk-set-uri: http://localhost:8080/realms/postgres/protocol/openid-connect/certs
+
+  #      activation-url:  http://localhost:8088/api/v1/auth/activate-account
+  security:
+    jwt:
+      secret-key: 19k2m8GRJSBNzJee6zzNWa43JGkoMS9WsB+vfog3OXQ=
+      expiration: 86400000
+  file:
+    uploads:
+      photos-output-path: ./uploads
+server:
+  port: 8088
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+waec:
+  api:
+    url: https://verify.waecgh.org/api/resultsreq/v3
+    token: cmtncndyZ206UHpxUTJQcURNRg==
