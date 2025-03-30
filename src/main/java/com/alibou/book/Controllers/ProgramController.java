@@ -22,13 +22,17 @@ public class ProgramController {
     private ProgramRepository programRepository;
 
     @PostMapping("/{universityId}/add")
-    public ResponseEntity<Program> addProgramToUniversity(
-            @PathVariable Long universityId, @RequestBody Program program) {
-
+    public ResponseEntity<List<Program>> addProgramToUniversity(
+            @PathVariable Long universityId,
+            @RequestBody List<Program> programs) {
         University university = universityService.getUniversityById(universityId);
-        program.setUniversity(university);
-        return ResponseEntity.ok(programRepository.save(program));
+        for (Program program : programs) {
+            program.setUniversity(university);
+        }
+        List<Program> savedPrograms = programRepository.saveAll(programs);
+        return ResponseEntity.ok(savedPrograms);
     }
+
 
     @GetMapping("/university/{universityId}")
     public ResponseEntity<List<Program>> getProgramsByUniversity(@PathVariable Long universityId) {

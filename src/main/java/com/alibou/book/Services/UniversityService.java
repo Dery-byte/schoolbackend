@@ -14,8 +14,8 @@ public class UniversityService {
     @Autowired
     private UniversityRepository universityRepository;
 
-    public University addUniversity(University university) {
-        return universityRepository.save(university);
+    public List<University> addUniversity(List<University> university) {
+        return universityRepository.saveAll(university);
     }
 
     public List<University> getAllUniversities() {

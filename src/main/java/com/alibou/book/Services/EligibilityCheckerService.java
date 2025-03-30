@@ -47,10 +47,6 @@ public class EligibilityCheckerService {
 
         System.out.println("📘 Extracted Grades: " + subjectGrades);
 
-        Map<University, List<Program>> eligibleProgramsMap = new HashMap<>();
-        Map<University, List<Program>> alternativeProgramsMap = new HashMap<>();
-        Map<Program, List<String>> programExplanations = new HashMap<>();
-
         Set<String> coreSubjects = Set.of("ENGLISH LANG", "MATHEMATICS(CORE)", "SOCIAL STUDIES", "INTEGRATED SCIENCE");
 
         Map<String, Integer> gradeScale = Map.ofEntries(
@@ -59,15 +55,19 @@ public class EligibilityCheckerService {
                 Map.entry("D7", 40), Map.entry("E8", 30), Map.entry("F9", 0), Map.entry("*", 0)
         );
 
-        List<Program> allPrograms = programRepository.findAll();
-        System.out.println("🎓 Total Programs: " + allPrograms.size());
+        Map<University, List<Program>> eligibleProgramsMap = new HashMap<>();
+        Map<University, List<Program>> alternativeProgramsMap = new HashMap<>();
+        Map<Program, List<String>> programExplanations = new HashMap<>();
+        Map<Program, Double> percentageMap = new HashMap<>();
 
-        for (Program program : allPrograms) {
+        for (Program program : programRepository.findAll()) {
             University university = program.getUniversity();
             System.out.println("\n➡️ Checking program: " + program.getName() + " at " + university.getName());
 
             boolean eligible = true;
             int scoreDifference = 0;
+            boolean failedCore = false;
+            List<Integer> scores = new ArrayList<>();
             List<String> explanation = new ArrayList<>();
 
             for (Map.Entry<String, String> requirement : program.getCutoffPoints().entrySet()) {
@@ -77,22 +77,21 @@ public class EligibilityCheckerService {
 
                 System.out.printf("   🔎 Subject: %-20s Required: %-3s | User: %-3s%n", subject, requiredGrade, userGrade);
 
-                if (userGrade == null) {
-                    explanation.add("Missing subject: " + subject);
-                    System.out.println("   ❌ Subject not found in user's grades.");
-                    eligible = false;
-                    break;
-                }
-
-                if (!gradeScale.containsKey(userGrade) || !gradeScale.containsKey(requiredGrade)) {
-                    explanation.add("Invalid grade for subject: " + subject);
-                    System.out.println("   ❌ Invalid grade (not in scale).");
+                if (userGrade == null || !gradeScale.containsKey(userGrade) || !gradeScale.containsKey(requiredGrade)) {
+                    explanation.add("Invalid or missing grade for subject: " + subject);
+                    System.out.println("   ❌ Invalid or missing grade");
                     eligible = false;
                     break;
                 }
 
                 int userScore = gradeScale.get(userGrade);
                 int requiredScore = gradeScale.get(requiredGrade);
+
+                if (coreSubjects.contains(subject) && (userGrade.equals("F9") || userGrade.equals("*"))) {
+                    failedCore = true;
+                }
+
+                scores.add(userScore);
 
                 if (userScore < requiredScore) {
                     int diff = requiredScore - userScore;
@@ -106,17 +105,16 @@ public class EligibilityCheckerService {
                 }
             }
 
-            // Check core subject rule (auto disqualify for F9 or * in core)
-            boolean hasFailedCore = coreSubjects.stream().anyMatch(subject ->
-                    subjectGrades.containsKey(subject) &&
-                            (subjectGrades.get(subject).equals("F9") || subjectGrades.get(subject).equals("*"))
-            );
+            double percentage = (failedCore || scores.isEmpty())
+                    ? 0.0
+                    : Math.round(scores.stream().mapToInt(i -> i).average().orElse(0.0) * 100.0) / 100.0;
+            percentageMap.put(program, percentage);
 
-            if (eligible && !hasFailedCore) {
-                System.out.println("✅ Fully eligible for: " + program.getName());
+            if (eligible && !failedCore) {
+                System.out.println("✅ Fully eligible for: " + program.getName() + " (" + percentage + "%)");
                 eligibleProgramsMap.computeIfAbsent(university, u -> new ArrayList<>()).add(program);
-            } else if (!hasFailedCore && scoreDifference <= 20) {
-                System.out.println("⚠️ Alternative match for: " + program.getName());
+            } else if (!failedCore && scoreDifference <= 20) {
+                System.out.println("⚠️ Alternative match for: " + program.getName() + " (" + percentage + "%)");
                 alternativeProgramsMap.computeIfAbsent(university, u -> new ArrayList<>()).add(program);
                 programExplanations.put(program, explanation);
             } else {
@@ -128,27 +126,23 @@ public class EligibilityCheckerService {
         allUniversities.addAll(eligibleProgramsMap.keySet());
         allUniversities.addAll(alternativeProgramsMap.keySet());
 
-        List<UniversityEligibilityDTO> result = new ArrayList<>();
+        List<UniversityEligibilityDTO> response = new ArrayList<>();
 
         for (University university : allUniversities) {
             List<EligibleProgramDTO> eligibleDTOs = eligibleProgramsMap.getOrDefault(university, List.of()).stream()
-                    .map(program -> {
-                        double percentage = calculateEligibilityPercentage(subjectGrades, coreSubjects, gradeScale);
-                        return new EligibleProgramDTO(program.getName(), program.getCutoffPoints(), percentage);
-                    }).collect(Collectors.toList());
+                    .map(p -> new EligibleProgramDTO(p.getName(), p.getCutoffPoints(), percentageMap.getOrDefault(p, 0.0)))
+                    .collect(Collectors.toList());
 
             List<AlternativeProgramDTO> alternativeDTOs = alternativeProgramsMap.getOrDefault(university, List.of()).stream()
-                    .map(program -> {
-                        double percentage = calculateEligibilityPercentage(subjectGrades, coreSubjects, gradeScale);
-                        return new AlternativeProgramDTO(
-                                program.getName(),
-                                program.getCutoffPoints(),
-                                programExplanations.getOrDefault(program, List.of()),
-                                percentage
-                        );
-                    }).collect(Collectors.toList());
+                    .map(p -> new AlternativeProgramDTO(
+                            p.getName(),
+                            p.getCutoffPoints(),
+                            programExplanations.getOrDefault(p, List.of()),
+                            percentageMap.getOrDefault(p, 0.0)
+                    ))
+                    .collect(Collectors.toList());
 
-            result.add(new UniversityEligibilityDTO(
+            response.add(new UniversityEligibilityDTO(
                     university.getName(),
                     university.getLocation(),
                     university.getType().name(),
@@ -157,26 +151,8 @@ public class EligibilityCheckerService {
             ));
         }
 
-        System.out.println("\n🎯 Eligibility check complete. Universities found: " + result.size());
-        return result;
-    }
-
-    private double calculateEligibilityPercentage(Map<String, String> subjectGrades, Set<String> coreSubjects, Map<String, Integer> gradeScale) {
-        for (String core : coreSubjects) {
-            String grade = subjectGrades.getOrDefault(core, "");
-            if (grade.equalsIgnoreCase("F9") || grade.equals("*")) {
-                return 0.0;
-            }
-        }
-
-        List<Integer> scores = subjectGrades.values().stream()
-                .map(g -> gradeScale.getOrDefault(g.toUpperCase(), 0))
-                .sorted(Comparator.reverseOrder())
-                .limit(6)
-                .collect(Collectors.toList());
-
-        double total = scores.stream().mapToDouble(i -> i).sum();
-        return scores.isEmpty() ? 0.0 : Math.round((total / 6.0) * 100.0) / 100.0;
+        System.out.println("\n🎯 Eligibility check complete. Universities found: " + response.size());
+        return response;
     }
 
 

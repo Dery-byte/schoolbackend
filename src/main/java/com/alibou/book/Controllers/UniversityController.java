@@ -19,8 +19,9 @@ public class UniversityController {
 
 
     @PostMapping("/add/university")
-    public ResponseEntity<University> addUniversity(@RequestBody University university) {
-        return ResponseEntity.ok(universityService.addUniversity(university));
+    public ResponseEntity<List<University>> addUniversity(@RequestBody List<University> universityList) {
+        List<University> saved = universityService.addUniversity(universityList);
+        return ResponseEntity.ok(saved);
     }
 
     @GetMapping("/all")
