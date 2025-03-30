@@ -21,12 +21,19 @@ public class EligibilityController {
     @Autowired
     private WaecApiService waecApiService;
 
-    @PostMapping("/check-eligibility")
+    @PostMapping("/check-eligibilityAll")
     public ResponseEntity<List<UniversityEligibilityDTO>> checkEligibility(@RequestBody WaecCandidateEntity candidate) {
-        List<UniversityEligibilityDTO> eligibility = waecApiService.checkEligibility(candidate);
+        List<UniversityEligibilityDTO> eligibility = waecApiService.checkEligibility(candidate, null);
         return ResponseEntity.ok(eligibility);
     }
 
+    @PostMapping("/check-eligibility/{universityType}")
+    public ResponseEntity<List<UniversityEligibilityDTO>> checkEligibility(
+            @PathVariable String universityType,
+            @RequestBody WaecCandidateEntity candidate) {
+
+        return ResponseEntity.ok(waecApiService.checkEligibility(candidate, universityType));
+    }
 
 
 }

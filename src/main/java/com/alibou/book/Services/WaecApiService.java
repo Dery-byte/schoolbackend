@@ -93,6 +93,9 @@ public class WaecApiService {
 
                 candidateEntity.setResultDetails(resultEntities);
                 waecCandidateRepository.save(candidateEntity);
+//                checkEligibility(candidateEntity, null);
+
+                System.out.println("This is the Saved Candidate : " + candidateEntity);
                 System.out.println("✅ WAEC result saved successfully.");
             }
 
@@ -123,17 +126,7 @@ public class WaecApiService {
     );
 
 
-
-
-
-
-
-
-    private final Set<String> coreSubjects = Set.of(
-            "ENGLISH LANG", "MATHEMATICS(CORE)", "SOCIAL STUDIES", "INTEGRATED SCIENCE"
-    );
-
-    public List<UniversityEligibilityDTO> checkEligibility(WaecCandidateEntity candidate) {
+    public List<UniversityEligibilityDTO> checkEligibility(WaecCandidateEntity candidate, String universityType) {
         System.out.println("\n🔍 Checking eligibility for: " + candidate.getCname() + " (Index: " + candidate.getCindex() + ")");
 
         Map<String, String> subjectGrades = candidate.getResultDetails().stream()
@@ -222,6 +215,16 @@ public class WaecApiService {
         Set<University> allUniversities = new HashSet<>();
         allUniversities.addAll(eligibleProgramsMap.keySet());
         allUniversities.addAll(alternativeProgramsMap.keySet());
+
+        // ✅ Filter by university type if it's provided
+        if (universityType != null && !universityType.isBlank()) {
+            String typeFilter = universityType.trim().toUpperCase();
+            System.out.println("🔎 Filtering universities by type: " + typeFilter);
+
+            allUniversities = allUniversities.stream()
+                    .filter(u -> u.getType().name().equalsIgnoreCase(typeFilter))
+                    .collect(Collectors.toSet());
+        }
 
         List<UniversityEligibilityDTO> response = new ArrayList<>();
 
