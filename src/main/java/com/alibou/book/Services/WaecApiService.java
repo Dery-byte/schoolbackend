@@ -53,8 +53,12 @@ public class WaecApiService {
         );
         if (existing.isPresent()) {
             System.out.println("✅ Result found in database. Skipping WAEC API call.");
+
             // Call eligibility checker with cached result
+//            List<UniversityEligibilityDTO> eligibility = checkEligibility(existing.get(), "PRIVATE");
+
             List<UniversityEligibilityDTO> eligibility = checkEligibility(existing.get(), null);
+
 
             System.out.println("RESPONSE FROM DATABASE: " + eligibility);
 
