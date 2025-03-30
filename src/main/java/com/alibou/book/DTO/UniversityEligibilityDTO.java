@@ -29,4 +29,14 @@ public class UniversityEligibilityDTO {
     }
 
     // Getters and Setters
+    @Override
+    public String toString() {
+        return "UniversityEligibilityDTO{" +
+                "universityName='" + universityName + '\'' +
+                ", location='" + location + '\'' +
+                ", type='" + type + '\'' +
+                ", eligiblePrograms=" + eligiblePrograms +
+                ", alternativePrograms=" + alternativePrograms +
+                '}';
+    }
 }

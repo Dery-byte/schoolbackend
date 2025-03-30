@@ -53,7 +53,17 @@ public class WaecApiService {
         );
         if (existing.isPresent()) {
             System.out.println("✅ Result found in database. Skipping WAEC API call.");
-            return ResponseEntity.ok(existing.get());
+            // Call eligibility checker with cached result
+            List<UniversityEligibilityDTO> eligibility = checkEligibility(existing.get(), null);
+
+            System.out.println("RESPONSE FROM DATABASE: " + eligibility);
+
+            return ResponseEntity.ok(Map.of(
+//                    "source", "DATABASE",
+                    "candidate", existing.get().getCname(),
+                    "indexNumber", existing.get().getCindex(),
+                    "eligibility", eligibility
+            ));
         }
 
         String reqRef = UUID.randomUUID().toString().replace("-", "").substring(0, 24);
@@ -94,6 +104,8 @@ public class WaecApiService {
                 candidateEntity.setResultDetails(resultEntities);
                 waecCandidateRepository.save(candidateEntity);
 //                checkEligibility(candidateEntity, null);
+                List<UniversityEligibilityDTO> eligibility = checkEligibility(candidateEntity, null);
+
 
                 System.out.println("This is the Saved Candidate : " + candidateEntity);
                 System.out.println("✅ WAEC result saved successfully.");
