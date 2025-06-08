@@ -6,7 +6,6 @@ import lombok.Setter;
 import java.util.List;
 import java.util.Map;
 
-
 @Setter
 @Getter
 public class AlternativeProgramDTO {
@@ -14,13 +13,15 @@ public class AlternativeProgramDTO {
     private Map<String, String> cutoffPoints;
     private List<String> explanation; // Technical grade deficit notes
     private double percentageEligibility;
+    private double admissionProbability; // New field
 
-
-    public AlternativeProgramDTO(String programName, Map<String, String> cutoffPoints, List<String> explanation, double percentageEligibility) {
+    // Updated constructor to include admissionProbability
+    public AlternativeProgramDTO(String programName, Map<String, String> cutoffPoints, List<String> explanation, double percentageEligibility, double admissionProbability) {
         this.programName = programName;
         this.cutoffPoints = cutoffPoints;
         this.explanation = explanation;
         this.percentageEligibility = percentageEligibility;
+        this.admissionProbability = admissionProbability; // Initialize new field
     }
 
     // Getters and setters...

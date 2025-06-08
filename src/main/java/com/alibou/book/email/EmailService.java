@@ -53,10 +53,11 @@ public class EmailService {
         Context context = new Context();
         context.setVariables(properties);
 
-        helper.setFrom("immanuelderry31@gmail.com");
+        helper.setFrom("emmanuelderryshare@gmail.com");
         helper.setTo(to);
         helper.setSubject(subject);
         System.out.println("Activation Link: " + confirmationUrl);
+        System.out.println("Activation link sent to " + to);
 
         String template = templateEngine.process(templateName, context);
         helper.setText(template, true);

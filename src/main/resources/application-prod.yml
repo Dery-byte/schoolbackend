@@ -1,0 +1,75 @@
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/school
+    username: root
+    password: EMMARESCUE
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        default_schema: farm
+    database-platform: org.hibernate.dialect.MySQL8Dialect
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: emmanuelderryshare@gmail.com
+    password: xkgafkycoljlxvew
+    protocol: smtp
+    properties:
+      mail:
+        debug: false
+        smtp:
+          auth: true
+          starttls:
+            enable: true       # ✅ corrected
+            required: true     # ✅ optional but good to include
+          connectiontimeout: 5000
+          timeout: 3000
+          writetimeout: 5000
+          ssl:
+            trust: smtp.gmail.com
+
+logging:
+  level:
+    org.springframework.mail: DEBUG
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://localhost:8080/realms/postgres
+
+application:
+  mailing:
+    frontend:
+      activation-url: http://localhost:4200/activate-account
+      jwk-set-uri: http://localhost:8080/realms/postgres/protocol/openid-connect/certs
+
+  security:
+    jwt:
+      secret-key: 19k2m8GRJSBNzJee6zzNWa43JGkoMS9WsB+vfog3OXQ=
+      expiration: 86400000
+
+  file:
+    uploads:
+      photos-output-path: ./uploads
+
+server:
+  port: 8088
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+waec:
+  api:
+    url: https://verify.waecgh.org/api/resultsreq/v3
+    token: cmtncndyZ206UHpxUTJQcURNRg==

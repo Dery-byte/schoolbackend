@@ -19,7 +19,7 @@ public class WaecResult {
     private Long id;
 
     private String examYear;
-    private String examType; // E.g., WASSCE, SSCE
+    private Long examType; // E.g., WASSCE, SSCE
     private String indexNumber; // Unique Per result
 
     @ElementCollection

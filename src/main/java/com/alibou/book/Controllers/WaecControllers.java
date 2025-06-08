@@ -12,11 +12,10 @@ import org.springframework.web.bind.annotation.*;
 public class WaecControllers {
 
     private final WaecApiService waecApiService;
-
     public WaecControllers(WaecApiService waecApiService) {
         this.waecApiService = waecApiService;
     }
-
+    // VERIFY RETURNS THE DATA FROM THE DATABASE IF EXIST AND FETCH FROM THE WAEC API OTHERWISE
     @PostMapping("/verify")
     public ResponseEntity<?> verifyWaecResult(@RequestBody WaecResultsRequest request) {
         return waecApiService.verifyResult(request);
@@ -24,9 +23,9 @@ public class WaecControllers {
 
 
 
-    @GetMapping("/databaseresult")
-    public ResponseEntity<WaecCandidateEntity> fetchResult(@RequestBody CandidateSearchRequest request) {
-        return waecApiService.getCandidateWithResultsFromDb(request);
-    }
+//    @GetMapping("/databaseresult")
+//    public ResponseEntity<WaecCandidateEntity> fetchResult(@RequestBody CandidateSearchRequest request) {
+//        return waecApiService.getCandidateWithResultsFromDb(request);
+//    }
 
 }

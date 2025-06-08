@@ -1,6 +1,5 @@
 spring:
   datasource:
-#    url: jdbc:postgresql://localhost:5432/template1
     url: jdbc:mysql://localhost:3306/school
     username: root
     password: EMMARESCUE
@@ -18,10 +17,14 @@ spring:
     database-platform: org.hibernate.dialect.MySQL8Dialect
   mail:
     host: localhost
-    port: 1025
-    username: ali
-    password: ali
+    port: 1085
+    username: esss
+    password: sss
     properties:
+      logging:
+        level:
+          org.springframework.mail: DEBUG
+          com.alibou.book.email: DEBUG
       mail:
         smtp:
           trust: "*"

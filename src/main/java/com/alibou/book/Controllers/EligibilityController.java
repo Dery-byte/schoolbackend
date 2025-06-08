@@ -3,7 +3,7 @@ package com.alibou.book.Controllers;
 import com.alibou.book.DTO.UniversityEligibilityDTO;
 import com.alibou.book.Entity.Program;
 import com.alibou.book.Entity.WaecCandidateEntity;
-import com.alibou.book.Services.EligibilityCheckerService;
+//import com.alibou.book.Services.EligibilityCheckerService;
 import com.alibou.book.Services.WaecApiService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +20,11 @@ public class EligibilityController {
 
     @Autowired
     private WaecApiService waecApiService;
+
+
+
+
+
 
     @PostMapping("/check-eligibilityAll")
     public ResponseEntity<List<UniversityEligibilityDTO>> checkEligibility(@RequestBody WaecCandidateEntity candidate) {

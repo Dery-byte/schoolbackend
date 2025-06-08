@@ -8,6 +8,6 @@ public class WaecResultsRequest {
 
     private String cindex;
     private String examyear;
-    private String examtype;
+    private Long examtype;
     private String reqref;
 }

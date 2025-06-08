@@ -26,7 +26,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     public boolean isAdmin(Long userId) {
         User user = repository.findById(Math.toIntExact(userId))
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
-        return user.getRoles().contains("ROLE_ADMIN");
+        return user.getRoles().contains("ADMIN");
     }
 
 }

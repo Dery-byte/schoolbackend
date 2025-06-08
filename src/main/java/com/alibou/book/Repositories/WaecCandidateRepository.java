@@ -7,5 +7,13 @@ import java.util.Optional;
 
 public interface WaecCandidateRepository extends JpaRepository<WaecCandidateEntity, Long> {
 
-    Optional<WaecCandidateEntity> findByCindexAndExamyearAndExamtype(String cindex, String examyear, String examtype);
+    Optional<WaecCandidateEntity> findByCindexAndExamyearAndExamtype(String cindex, String examyear, Long examtype);
+
+
+
+    Optional<WaecCandidateEntity> findFirstByCindexAndExamyearAndExamtype(String cindex, String examyear, Long examtype);
+
+
+
+
 }

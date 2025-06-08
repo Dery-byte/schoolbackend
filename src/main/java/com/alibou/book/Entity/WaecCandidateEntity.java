@@ -3,6 +3,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.ToString;
 
 import java.util.List;
 import java.util.UUID;
@@ -25,8 +26,10 @@ public class WaecCandidateEntity {
     private String examyear;
 
     @Column(nullable = false)
-    private String examtype;
+    private Long examtype;
 
     @OneToMany(mappedBy = "candidate", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+//    @JsonIgnore
+    @ToString.Exclude
     private List<WaecResultDetailEntity> resultDetails;
 }
