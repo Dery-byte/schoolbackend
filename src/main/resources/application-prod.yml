@@ -11,39 +11,37 @@ spring:
     show-sql: false
     properties:
       hibernate:
+        ddl-auto: update  # Options: create, create-drop, update, validate, none
         format_sql: true
         default_schema: farm
+    database:
     database-platform: org.hibernate.dialect.MySQL8Dialect
 
   mail:
-    host: smtp.gmail.com
-    port: 587
-    username: emmanuelderryshare@gmail.com
-    password: xkgafkycoljlxvew
-    protocol: smtp
+    host: localhost
+    port: 1085
+    username: esss
+    password: sss
     properties:
+      logging:
+        level:
+          org.springframework.mail: DEBUG
+          com.alibou.book.email: DEBUG
       mail:
-        debug: false
         smtp:
-          auth: true
-          starttls:
-            enable: true       # ✅ corrected
-            required: true     # ✅ optional but good to include
-          connectiontimeout: 5000
-          timeout: 3000
-          writetimeout: 5000
-          ssl:
-            trust: smtp.gmail.com
-
-logging:
-  level:
-    org.springframework.mail: DEBUG
+          trust: "*"
+        auth: true
+        starttls:
+          enabled: true
+        connectiontimeout: 5000
+        timeout: 3000
+        writetimeout: 5000
 
   security:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: https://localhost:8080/realms/postgres
+          issuer-uri: "https://localhost:8080/realms/postgres"
 
 application:
   mailing:
@@ -73,3 +71,30 @@ waec:
   api:
     url: https://verify.waecgh.org/api/resultsreq/v3
     token: cmtncndyZ206UHpxUTJQcURNRg==
+
+moolre:
+  api:
+    url: https://api.moolre.com/open/transact/payment
+  callback:
+    url: https://databundlbackend.onrender.com/api/v1/auth/payment/webhook
+  account-number: 10638206043532
+  username: Mudita
+  public-key: >-
+    eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyaWQiOjEwNjM4MiwiZXhwIjoxOTI1MDA5OTk5fQ.TlISuKTOcV_S1WM8LjPeFz9vE_64YNOH6fWKLglq7QY
+  webhook:
+    secret: 6cd824e6-ea05-42f5-bf30-1d63c06b75a8
+
+logging:
+  level:
+    com.exam: DEBUG
+
+mnotify:
+  v2:
+    url: https://api.mnotify.com/api/sms/quick
+    key: oWmpfPGz22BObP6ng9Zjb0Xe4
+    sender-id: OPTUMSERV
+
+price:
+  ranges:
+    step-size: 50.0
+    max-before-plus: 200.0
