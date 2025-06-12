@@ -15,6 +15,7 @@ import java.security.Principal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -29,14 +30,22 @@ public class ExamCheckRecordService {
         if (principal == null) {
             throw new IllegalArgumentException("User must be authenticated to add a product.");
         }
-        // Load user and validate farm
+        // Load user and validate
+
+        String externalRef = generateReference();
+//        request.setExternalref(externalRef);
         User user = (User) userDetailsService.loadUserByUsername(principal.getName());
         Long UserId = Long.valueOf(user.getId());
         record.setUserId(UserId.toString());
         record.setCreatedAt(Instant.now());
         record.setLastUpdated(Instant.now());
+        record.setExternalRef(externalRef);
         record.setPaymentStatus(PaymentStatus.PENDING);
         return examCheckRecordRepository.save(record);
+    }
+
+    private String generateReference () {
+        return UUID.randomUUID().toString();
     }
 
     public ExamCheckRecord updatePaymentStatus(String id, String paymentStatus) {

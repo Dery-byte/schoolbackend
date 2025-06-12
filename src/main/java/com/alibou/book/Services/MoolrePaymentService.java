@@ -5,7 +5,7 @@ import com.alibou.book.DTO.PaymentData;
 import com.alibou.book.DTO.PaymentStatusRequest;
 import com.alibou.book.Entity.*;
 import com.alibou.book.Repositories.ExamCheckRecordRepository;
-import com.alibou.book.Repositories.PaymentRepository;
+//import com.alibou.book.Repositories.PaymentRepository;
 import com.alibou.book.Repositories.PaymentStatusRepository;
 import com.alibou.book.config.MoolreConfig;
 import com.alibou.book.email.EmailService;
@@ -59,7 +59,7 @@ public class MoolrePaymentService {
 
 
     private  PaymentData paymentData;
-    private final PaymentRepository paymentRepository;
+    //private final PaymentRepository paymentRepository;
     private final UserDetailsService userDetailsService;
     private final SpringTemplateEngine templateEngine;
     private final MNotifyV2SmsService mNotifyV2SmsService;
@@ -76,13 +76,13 @@ public class MoolrePaymentService {
 
     // Thread-safe storage for external references mapped to user IDs (or phone numbers)
     private final Map<String, String> userPaymentReferences = new ConcurrentHashMap<>();
-    public MoolrePaymentService(MoolreConfig config, RestTemplate restTemplate, ObjectMapper objectMapper, PaymentStatusRepository paymentStatusRepository, JavaMailSender mailSender, PaymentRepository paymentRepository, UserDetailsService userDetailsService, EmailService mailService1, SpringTemplateEngine templateEngine, MNotifyV2SmsService mNotifyV2SmsService, ExamCheckRecordRepository examCheckRecordRepository) {
+    public MoolrePaymentService(MoolreConfig config, RestTemplate restTemplate, ObjectMapper objectMapper, PaymentStatusRepository paymentStatusRepository, JavaMailSender mailSender,  UserDetailsService userDetailsService, EmailService mailService1, SpringTemplateEngine templateEngine, MNotifyV2SmsService mNotifyV2SmsService, ExamCheckRecordRepository examCheckRecordRepository) {
         this.config = config;
         this.restTemplate = restTemplate;
         this.objectMapper = objectMapper;
         this.paymentStatusRepository = paymentStatusRepository;
         this.mailSender = mailSender;
-        this.paymentRepository = paymentRepository;
+      //  this.paymentRepository = paymentRepository;
         this.userDetailsService = userDetailsService;
         this.templateEngine = templateEngine;
         this.mNotifyV2SmsService = mNotifyV2SmsService;
@@ -171,12 +171,16 @@ public class MoolrePaymentService {
         request.setType(1);
 
         // JUST ADDED
-        Optional<ExamCheckRecord> existingRecord = examCheckRecordRepository.findByUserIdAndPaymentStatus(String.valueOf(user.getId()), PaymentStatus.PENDING);
-
+//        Optional<ExamCheckRecord> existingRecord = examCheckRecordRepository.findByUserIdAndPaymentStatus(String.valueOf(user.getId()), PaymentStatus.PENDING);
+        String externalRef = null;
+        Optional<ExamCheckRecord> existingRecord = examCheckRecordRepository.findByUserIdAndPaymentStatusAndExternalRef(
+                String.valueOf(user.getId()),
+                PaymentStatus.PENDING,
+                request.getExternalref()
+        );
         // Generate unique external reference
 //        String externalRef = generateReference();
 //        request.setExternalref(externalRef);
-        String externalRef;
 
         if (existingRecord.isPresent()) {
             // Reuse existing reference
@@ -200,11 +204,11 @@ public class MoolrePaymentService {
         System.out.println("For the webhook " + externalRef);
 
         // Save the externalRef in the Payment Entity
-        Payment payment = new Payment();
-        payment.setExternalRef(externalRef);
-        payment.setUser(user);
-        System.out.println("ExternalRef Saved: " + externalRef);
-        paymentRepository.save(payment);
+//        Payment payment = new Payment();
+//        payment.setExternalRef(externalRef);
+//        payment.setUser(user);
+//        System.out.println("ExternalRef Saved: " + externalRef);
+//        paymentRepository.save(payment);
 
         // Store externalRef for this user
         userPaymentReferences.put(principal.getName(), externalRef);
