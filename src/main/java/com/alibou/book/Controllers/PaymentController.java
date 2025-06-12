@@ -3,6 +3,8 @@ package com.alibou.book.Controllers;
 import com.alibou.book.DTO.MoolrePaymentRequest;
 import com.alibou.book.DTO.PaymentStatusRequest;
 import com.alibou.book.Entity.MoolrePaymentResponse;
+import com.alibou.book.Entity.PaymentStatuss;
+import com.alibou.book.Repositories.PaymentStatusRepository;
 import com.alibou.book.Services.MoolrePaymentService;
 import com.alibou.book.exception.PaymentProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -13,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import java.security.Principal;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.logging.Logger;
 import lombok.extern.slf4j.Slf4j;
 
@@ -26,6 +29,7 @@ public class PaymentController {
 
 private final MoolrePaymentService moolrePaymentService;
     private static final Logger logger = Logger.getLogger(MoolrePaymentService.class.getName());
+    private final PaymentStatusRepository paymentStatusRepository;
 
 
     @PostMapping("/initiate")
@@ -146,6 +150,14 @@ private final MoolrePaymentService moolrePaymentService;
             ));
         }
     }
+
+
+    @GetMapping("/payment-status/{externalRef}")
+    public ResponseEntity<PaymentStatuss> getStatus(@PathVariable String externalRef) {
+        Optional<PaymentStatuss> status = paymentStatusRepository.findByExternalRef(externalRef);
+        return status.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
 
 }
 
