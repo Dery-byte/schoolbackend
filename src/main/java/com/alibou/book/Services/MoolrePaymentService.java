@@ -5,7 +5,6 @@ import com.alibou.book.DTO.PaymentData;
 import com.alibou.book.DTO.PaymentStatusRequest;
 import com.alibou.book.Entity.*;
 import com.alibou.book.Repositories.ExamCheckRecordRepository;
-//import com.alibou.book.Repositories.PaymentRepository;
 import com.alibou.book.Repositories.PaymentStatusRepository;
 import com.alibou.book.config.MoolreConfig;
 import com.alibou.book.email.EmailService;
@@ -43,46 +42,33 @@ import static org.springframework.mail.javamail.MimeMessageHelper.MULTIPART_MODE
 @Slf4j
 public class MoolrePaymentService {
 
-
-
     private final MoolreConfig config;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
-   private final PaymentStatusRepository paymentStatusRepository;
-    //private final SimpMessagingTemplate messagingTemplate;
+    private final PaymentStatusRepository paymentStatusRepository;
     private static final Logger logger = Logger.getLogger(MoolrePaymentService.class.getName());
-    //private final MailService mailService;
-   // private final EmailService mailService;
-  //  private final MailServiceImpl mailServiceImpl;
-  private final JavaMailSender mailSender;
+    private final JavaMailSender mailSender;
     private final ExamCheckRecordRepository examCheckRecordRepository;
-
-
-    private  PaymentData paymentData;
-    //private final PaymentRepository paymentRepository;
+    private PaymentData paymentData;
     private final UserDetailsService userDetailsService;
     private final SpringTemplateEngine templateEngine;
     private final MNotifyV2SmsService mNotifyV2SmsService;
 
-    //private final SmsService smsService;
-
-
-
-//    @Value("${moolre.webhook.secret}") // Load the secret from application.properties
-//    private String webhookSecret;
-
     public User user;
-
 
     // Thread-safe storage for external references mapped to user IDs (or phone numbers)
     private final Map<String, String> userPaymentReferences = new ConcurrentHashMap<>();
-    public MoolrePaymentService(MoolreConfig config, RestTemplate restTemplate, ObjectMapper objectMapper, PaymentStatusRepository paymentStatusRepository, JavaMailSender mailSender,  UserDetailsService userDetailsService, EmailService mailService1, SpringTemplateEngine templateEngine, MNotifyV2SmsService mNotifyV2SmsService, ExamCheckRecordRepository examCheckRecordRepository) {
+
+    public MoolrePaymentService(MoolreConfig config, RestTemplate restTemplate, ObjectMapper objectMapper,
+                                PaymentStatusRepository paymentStatusRepository, JavaMailSender mailSender,
+                                UserDetailsService userDetailsService, EmailService mailService1,
+                                SpringTemplateEngine templateEngine, MNotifyV2SmsService mNotifyV2SmsService,
+                                ExamCheckRecordRepository examCheckRecordRepository) {
         this.config = config;
         this.restTemplate = restTemplate;
         this.objectMapper = objectMapper;
         this.paymentStatusRepository = paymentStatusRepository;
         this.mailSender = mailSender;
-      //  this.paymentRepository = paymentRepository;
         this.userDetailsService = userDetailsService;
         this.templateEngine = templateEngine;
         this.mNotifyV2SmsService = mNotifyV2SmsService;
@@ -90,131 +76,30 @@ public class MoolrePaymentService {
     }
 
     /**
-     * Initiates a payment request and stores the external reference in the map.
+     * Initiates a payment request and manages ExamCheckRecord creation/reuse.
+     * Prevents duplicate external references for the same user's pending payments.
      */
-//
-//    public MoolrePaymentResponse initiatePayment(Principal principal, MoolrePaymentRequest request) {
-//        User user = (User) userDetailsService.loadUserByUsername(principal.getName());
-//
-//        HttpHeaders headers = createHeaders();
-//        request.setAccountnumber(config.getAccountNumber());
-//        request.setCurrency("GHS");
-//        request.setType(1);
-//
-//        // Generate unique external reference
-//        String externalRef = generateReference();
-//        request.setExternalref(externalRef);
-//
-//        System.out.println("For the webhook " + generateReference());
-////        Save the externalRef in the Payment Entity
-//        Payment payment= new Payment();
-//        payment.setExternalRef(externalRef);
-//        payment.setUser(user);
-//        System.out.println(" externalRef Save: " + externalRef);
-//        paymentRepository.save(payment);
-//
-//
-//        // Store externalRef for this user
-//        userPaymentReferences.put(principal.getName(), externalRef);
-//        log.info("Payment initiated for User: {} with External Ref: {}", principal.getName(), externalRef);
-//
-//
-//
-//
-//        HttpEntity<MoolrePaymentRequest> entity = new HttpEntity<>(request, headers);
-//        try {
-//            ResponseEntity<String> response = restTemplate.exchange(
-//                    config.getApiUrl(),
-//                    HttpMethod.POST,
-//                    entity,
-//                    String.class
-//            );
-//
-//            log.debug("Raw response: {}", response.getBody());
-//            MoolrePaymentResponse paymentResponse = objectMapper.readValue(response.getBody(), MoolrePaymentResponse.class);
-//            paymentResponse.setExternalref(externalRef);
-//
-//            // Log and return appropriate messages
-//            if (paymentResponse.getStatus() == 1) {
-//                if ("TP14".equals(paymentResponse.getCode())) {
-//                    log.info("Verification required: {}", paymentResponse.getMessage());
-//                    paymentResponse.setUserMessage("A verification code has been sent to your phone. Please complete the verification to proceed.");
-//                } else {
-//                    log.info("Payment initiated successfully: {}", paymentResponse.getMessage());
-//                    paymentResponse.setUserMessage("Payment initiated successfully. Please wait for confirmation.");
-//                }
-//            } else {
-//                log.warn("Payment initiation failed: {}", paymentResponse.getMessage());
-//                paymentResponse.setUserMessage("Payment failed: " + paymentResponse.getMessage());
-//            }
-//
-//            return paymentResponse;
-//        } catch (Exception e) {
-//            log.error("Payment initiation failed: {}", e.getMessage(), e);
-//            throw new PaymentProcessingException("Failed to process payment. Please try again later.", e);
-//        }
-//
-//
-//
-//    }
-
-
-
-
+    @Transactional
     public MoolrePaymentResponse initiatePayment(Principal principal, MoolrePaymentRequest request) {
         User user = (User) userDetailsService.loadUserByUsername(principal.getName());
+        this.user = user;
 
-        this.user = (User) userDetailsService.loadUserByUsername(principal.getName());
         HttpHeaders headers = createHeaders();
         request.setAccountnumber(config.getAccountNumber());
         request.setCurrency("GHS");
         request.setType(1);
 
-        // JUST ADDED
-//        Optional<ExamCheckRecord> existingRecord = examCheckRecordRepository.findByUserIdAndPaymentStatus(String.valueOf(user.getId()), PaymentStatus.PENDING);
-        String externalRef = null;
-        Optional<ExamCheckRecord> existingRecord = examCheckRecordRepository.findByUserIdAndPaymentStatusAndExternalRef(
-                String.valueOf(user.getId()),
-                PaymentStatus.PENDING,
-                request.getExternalref()
-        );
-        // Generate unique external reference
-//        String externalRef = generateReference();
-//        request.setExternalref(externalRef);
-
-        if (existingRecord.isPresent()) {
-            // Reuse existing reference
-            externalRef = existingRecord.get().getExternalRef();
-            log.info("Reusing existing payment reference {} for user {}", externalRef, user.getId());
-        } else {
-            // Generate new reference
-            externalRef = generateReference();
-            ExamCheckRecord newRecord = new ExamCheckRecord();
-            newRecord.setUserId(String.valueOf(user.getId()));
-            newRecord.setExternalRef(externalRef);
-            newRecord.setPaymentStatus(PaymentStatus.PENDING);
-            newRecord.setCreatedAt(Instant.now());
-            examCheckRecordRepository.save(newRecord);
-
-
-        }
-
+        String externalRef = getOrCreateExternalReference(user);
         request.setExternalref(externalRef);
-        log.info("Payment initiated with reference: {}", externalRef);
+
+        log.info("Payment initiated for User: {} with External Ref: {}", principal.getName(), externalRef);
         System.out.println("For the webhook " + externalRef);
 
-        // Save the externalRef in the Payment Entity
-//        Payment payment = new Payment();
-//        payment.setExternalRef(externalRef);
-//        payment.setUser(user);
-//        System.out.println("ExternalRef Saved: " + externalRef);
-//        paymentRepository.save(payment);
-
-        // Store externalRef for this user
+        // Store externalRef for this user session
         userPaymentReferences.put(principal.getName(), externalRef);
-        log.info("Payment initiated for User: {} with External Ref: {}", principal.getName(), externalRef);
 
         HttpEntity<MoolrePaymentRequest> entity = new HttpEntity<>(request, headers);
+
         try {
             ResponseEntity<String> response = restTemplate.exchange(
                     config.getApiUrl(),
@@ -225,61 +110,111 @@ public class MoolrePaymentService {
 
             log.debug("Raw response: {}", response.getBody());
             MoolrePaymentResponse paymentResponse = objectMapper.readValue(response.getBody(), MoolrePaymentResponse.class);
-            paymentResponse.setExternalref(externalRef); // Ensure externalRef is included in the response
-            // Log and return appropriate messages
-            if (paymentResponse.getStatus() == 1) {
-                if ("TP14".equals(paymentResponse.getCode())) {
-                    log.info("Verification required: {}", paymentResponse.getMessage());
-                    paymentResponse.setUserMessage("A verification code has been sent to your phone. Please complete the verification to proceed.");
-                } else {
-                    log.info("Payment initiated successfully: {}", paymentResponse.getMessage());
-                    paymentResponse.setUserMessage("Payment initiated successfully. Please wait for confirmation.");
-                }
-            } else {
-                log.warn("Payment initiation failed: {}", paymentResponse.getMessage());
-                paymentResponse.setUserMessage("Payment failed: " + paymentResponse.getMessage());
-            }
-            return paymentResponse;
-        } catch (Exception e) {
+            paymentResponse.setExternalref(externalRef);
 
-            examCheckRecordRepository.findByExternalRef(externalRef)
-                    .ifPresent(record -> {
-                        record.setPaymentStatus(PaymentStatus.FAILED);
-                        examCheckRecordRepository.save(record);
-                    });
+            // Handle response messages
+            handlePaymentResponse(paymentResponse);
+
+            return paymentResponse;
+
+        } catch (Exception e) {
+            // Mark the payment as failed if payment initiation fails
+            updateExamCheckRecordStatus(externalRef, PaymentStatus.FAILED);
             log.error("Payment initiation failed: {}", e.getMessage(), e);
             throw new PaymentProcessingException("Failed to process payment. Please try again later.", e);
         }
     }
 
+    /**
+     * Gets existing pending ExamCheckRecord or creates a new one.
+     * This prevents duplicate external references for the same user.
+     */
+    private String getOrCreateExternalReference(User user) {
+        // Check if user has any pending payment records
+        Optional<ExamCheckRecord> existingRecord = examCheckRecordRepository
+                .findFirstByUserIdAndPaymentStatusOrderByCreatedAtDesc(
+                        String.valueOf(user.getId()),
+                        PaymentStatus.PENDING
+                );
 
+        if (existingRecord.isPresent()) {
+            // Reuse existing pending record
+            ExamCheckRecord record = existingRecord.get();
+            log.info("Reusing existing payment reference {} for user {}", record.getExternalRef(), user.getId());
+            return record.getExternalRef();
+        } else {
+            // Create new record with new external reference
+            String externalRef = generateReference();
+            ExamCheckRecord newRecord = createNewExamCheckRecord(user, externalRef);
+            examCheckRecordRepository.save(newRecord);
+            log.info("Created new payment reference {} for user {}", externalRef, user.getId());
+            return externalRef;
+        }
+    }
 
+    /**
+     * Creates a new ExamCheckRecord with the provided external reference.
+     */
+    private ExamCheckRecord createNewExamCheckRecord(User user, String externalRef) {
+        ExamCheckRecord record = new ExamCheckRecord();
+        record.setUserId(String.valueOf(user.getId()));
+        record.setExternalRef(externalRef);
+        record.setPaymentStatus(PaymentStatus.PENDING);
+        record.setCreatedAt(Instant.now());
+        record.setLastUpdated(Instant.now());
+        return record;
+    }
 
+    /**
+     * Updates the payment status of an ExamCheckRecord.
+     */
+    private void updateExamCheckRecordStatus(String externalRef, PaymentStatus status) {
+        examCheckRecordRepository.findByExternalRef(externalRef)
+                .ifPresent(record -> {
+                    record.setPaymentStatus(status);
+                    record.setLastUpdated(Instant.now());
+                    examCheckRecordRepository.save(record);
+                    log.info("Updated ExamCheckRecord with externalRef {} to status {}", externalRef, status);
+                });
+    }
 
-
-
+    /**
+     * Handles payment response messages for UI feedback.
+     */
+    private void handlePaymentResponse(MoolrePaymentResponse paymentResponse) {
+        if (paymentResponse.getStatus() == 1) {
+            if ("TP14".equals(paymentResponse.getCode())) {
+                log.info("Verification required: {}", paymentResponse.getMessage());
+                paymentResponse.setUserMessage("A verification code has been sent to your phone. Please complete the verification to proceed.");
+            } else {
+                log.info("Payment initiated successfully: {}", paymentResponse.getMessage());
+                paymentResponse.setUserMessage("Payment initiated successfully. Please wait for confirmation.");
+            }
+        } else {
+            log.warn("Payment initiation failed: {}", paymentResponse.getMessage());
+            paymentResponse.setUserMessage("Payment failed: " + paymentResponse.getMessage());
+        }
+    }
 
     /**
      * Verifies OTP and retrieves the stored external reference before proceeding.
      */
-
     public MoolrePaymentResponse verifyOtpAndProceed(Principal principal, MoolrePaymentRequest request) {
         String externalRef = userPaymentReferences.get(principal.getName());
-        request.setAccountnumber(config.getAccountNumber());
-        request.setCurrency("GHS");
-        request.setType(1);
-        request.setReference("Optimus");
-
-        System.out.println("This is the externalRef " + externalRef);
-
 
         if (externalRef == null) {
             log.error("No stored External Reference for User: {}", principal.getName());
             throw new PaymentProcessingException("No External Reference found for OTP verification.");
         }
 
+        request.setAccountnumber(config.getAccountNumber());
+        request.setCurrency("GHS");
+        request.setType(1);
+        request.setReference("Optimus");
         request.setExternalref(externalRef);
+
         log.info("Verifying OTP for User: {} with External Ref: {}", principal.getName(), externalRef);
+
         HttpHeaders headers = createHeaders();
         HttpEntity<MoolrePaymentRequest> entity = new HttpEntity<>(request, headers);
 
@@ -300,11 +235,14 @@ public class MoolrePaymentService {
             } else {
                 log.warn("OTP verification failed for User: {}. Reason: {}", principal.getName(),
                         verificationResponse.getMessage() != null ? verificationResponse.getMessage() : "Unknown reason.");
+                // Update status to failed on OTP verification failure
+                updateExamCheckRecordStatus(externalRef, PaymentStatus.FAILED);
                 throw new PaymentProcessingException("OTP verification failed. " +
                         (verificationResponse.getMessage() != null ? verificationResponse.getMessage() : "Please try again."));
             }
         } catch (Exception e) {
             log.error("OTP verification error: {}", e.getMessage(), e);
+            updateExamCheckRecordStatus(externalRef, PaymentStatus.FAILED);
             throw new PaymentProcessingException("Failed to verify OTP. Please try again later.", e);
         }
     }
@@ -328,7 +266,6 @@ public class MoolrePaymentService {
             log.debug("Payment trigger response: {}", response.getBody());
             MoolrePaymentResponse paymentResponse = objectMapper.readValue(response.getBody(), MoolrePaymentResponse.class);
 
-            // Handle response message for UI
             if (paymentResponse.getStatus() == 1 && "TR099".equals(paymentResponse.getCode())) {
                 log.info("Payment successful for External Ref: {}", request.getExternalref());
                 paymentResponse.setMessage(paymentResponse.getMessage() != null ? paymentResponse.getMessage() :
@@ -336,19 +273,80 @@ public class MoolrePaymentService {
             } else {
                 log.warn("Payment failed for External Ref: {}. Code: {}, Message: {}", request.getExternalref(),
                         paymentResponse.getCode(), paymentResponse.getMessage());
+                updateExamCheckRecordStatus(request.getExternalref(), PaymentStatus.FAILED);
                 throw new PaymentProcessingException("Payment failed. " +
                         (paymentResponse.getMessage() != null ? paymentResponse.getMessage() : "Please contact support."));
             }
             return paymentResponse;
         } catch (Exception e) {
             log.error("Error triggering payment: {}", e.getMessage(), e);
+            updateExamCheckRecordStatus(request.getExternalref(), PaymentStatus.FAILED);
             throw new PaymentProcessingException("Failed to process payment. Please try again later.", e);
         }
     }
 
+    /**
+     * Processes webhook payment status updates.
+     * Updates the corresponding ExamCheckRecord's PaymentStatus field.
+     */
+    @Transactional
+    public void processPaymentStatusRequest(PaymentStatusRequest paymentStatusRequest) {
+        if (paymentStatusRequest == null || paymentStatusRequest.getData() == null) {
+            throw new IllegalArgumentException("Payment status request or data is null");
+        }
 
+        PaymentData paymentData = paymentStatusRequest.getData();
+        logger.info("Processing payment webhook. Status: " + paymentStatusRequest.getStatus() +
+                ", Transaction ID: " + paymentData.getTransactionid());
 
+        // Validate webhook secret
+        validateWebhookSecret(paymentData.getSecret());
 
+        // Save webhook data to PaymentStatus table
+        PaymentStatuss paymentStatus = mapToPaymentStatus(paymentStatusRequest);
+        paymentStatusRepository.save(paymentStatus);
+
+        // Update ExamCheckRecord based on webhook response
+        updateExamCheckRecordFromWebhook(paymentData);
+
+        // Send notifications if payment was successful
+        if (paymentData.getTxstatus() == 1) {
+            sendPaymentSuccessEmail(paymentData);
+            sendPaymentSuccessNotification(paymentData);
+        }
+
+        logger.info("Payment status processed and saved successfully for transaction: " + paymentData.getTransactionid());
+    }
+
+    /**
+     * Updates ExamCheckRecord based on webhook payment data.
+     */
+    private void updateExamCheckRecordFromWebhook(PaymentData paymentData) {
+        examCheckRecordRepository.findByExternalRef(paymentData.getExternalref())
+                .ifPresentOrElse(
+                        record -> {
+                            PaymentStatus newStatus = determinePaymentStatus(paymentData.getTxstatus());
+                            record.setPaymentStatus(newStatus);
+                            record.setLastUpdated(Instant.now());
+
+                            // Additional fields can be updated here if needed
+                            // record.setTransactionId(paymentData.getTransactionid());
+                            // record.setAmount(paymentData.getAmount());
+
+                            examCheckRecordRepository.save(record);
+                            logger.info("Updated ExamCheckRecord {} to status {} for externalRef {}"
+                            );
+                        },
+                        () -> logger.warning("No ExamCheckRecord found for externalRef: " + paymentData.getExternalref())
+                );
+    }
+
+    /**
+     * Determines PaymentStatus based on transaction status from webhook.
+     */
+    private PaymentStatus determinePaymentStatus(int txStatus) {
+        return txStatus == 1 ? PaymentStatus.PAID : PaymentStatus.FAILED;
+    }
 
     /**
      * Sends SMS notification for successful payment.
@@ -359,7 +357,7 @@ public class MoolrePaymentService {
             return;
         }
 
-        String phoneNumber = paymentData.getPayer(); // Get recipient phone number
+        String phoneNumber = paymentData.getPayer();
         String amount = String.format("%.2f", paymentData.getAmount());
         String transactionId = paymentData.getTransactionid();
 
@@ -367,18 +365,17 @@ public class MoolrePaymentService {
             logger.warning("User phone number is missing. Unable to send SMS.");
             return;
         }
-        String senderId = "Optimus";
+
         String message = String.format("Dear Customer, your payment of GHS %s was successful. Transaction ID: %s. Thank you!",
                 amount, transactionId);
+
         try {
-            // Call SmsService to send SMS
             String response = mNotifyV2SmsService.sendSms(Collections.singletonList(phoneNumber), message);
             logger.info("SMS Notification sent to " + phoneNumber + ". Response: " + response);
         } catch (Exception e) {
             logger.severe("Failed to send SMS notification: " + e.getMessage());
         }
     }
-
 
     /**
      * Creates HTTP headers for requests.
@@ -391,95 +388,11 @@ public class MoolrePaymentService {
         return headers;
     }
 
-
-
-
-
-
     /**
      * Generates a unique external reference.
      */
-    private String generateReference () {
+    private String generateReference() {
         return UUID.randomUUID().toString();
-    }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    @Transactional
-    public void processPaymentStatusRequest(PaymentStatusRequest paymentStatusRequest) {
-        if (paymentStatusRequest == null || paymentStatusRequest.getData() == null) {
-            throw new IllegalArgumentException("Payment status request or data is null");
-        }
-//        User user = (User) userDetailsService.loadUserByUsername(principal.getName());
-        PaymentData paymentData = paymentStatusRequest.getData();
-        logger.info("Processing payment webhook. Status: " + paymentStatusRequest.getStatus() +
-                ", Transaction ID: " + paymentData.getTransactionid());
-        // Validate webhook secret (commented out for now but should be implemented)
-        validateWebhookSecret(paymentData.getSecret());
-
-
-        // Map webhook data to domain model
-        PaymentStatuss paymentStatus = mapToPaymentStatus(paymentStatusRequest);
-        // Save to database
-        paymentStatusRepository.save(paymentStatus);
-        examCheckRecordRepository.findByExternalRef(paymentData.getExternalref())
-                .ifPresentOrElse(
-                        record -> {
-                            // Map payment status to exam record status
-                            PaymentStatus newStatus = paymentData.getTxstatus() == 1
-                                    ? PaymentStatus.PAID
-                                    : PaymentStatus.FAILED;
-                            record.setPaymentStatus(newStatus);
-                            record.setLastUpdated(Instant.now());
-
-                           // logger.info("Updated ExamCheckRecord {} to status {}", record.getId(), newStatus);
-                        },
-                        () -> logger.info("No ExamCheckRecord found for externalRef: {}"
-                        )
-                );
-
-
-        if (paymentData.getTxstatus() == 1) {
-            sendPaymentSuccessEmail(paymentData); // SEND EMAIL NOTIFICATION
-            sendPaymentSuccessNotification(paymentData); // SEND SMS NOTIFICATION
-        }
-
-
-
-
-
-        // Notify UI through WebSockets
-//        messagingTemplate.convertAndSend("/topic/paymentStatus", paymentStatus);
-//        logger.info("Payment status processed and saved successfully for transaction: " +
-//                paymentData.getTransactionid());
     }
 
     /**
@@ -497,11 +410,6 @@ public class MoolrePaymentService {
         paymentStatus.setExternalRef(data.getExternalref());
         paymentStatus.setThirdPartyRef(data.getThirdpartyref());
         paymentStatus.setTimestamp(data.getTs());
-
-        // Set additional information from the request header
-//        paymentStatus.setStatusCode(request.getCode());
-//        paymentStatus.setStatusMessage(request.getMessage());
-
         return paymentStatus;
     }
 
@@ -509,13 +417,11 @@ public class MoolrePaymentService {
      * Validates the webhook secret
      */
     private void validateWebhookSecret(String secret) {
-        // Uncomment this in production
-        /*
-        if (secret == null || !webhookSecret.equals(secret)) {
-            logger.severe("Invalid webhook secret received");
-            throw new SecurityException("Invalid webhook secret");
-        }
-        */
+        // Implement webhook secret validation in production
+        // if (secret == null || !webhookSecret.equals(secret)) {
+        //     logger.severe("Invalid webhook secret received");
+        //     throw new SecurityException("Invalid webhook secret");
+        // }
     }
 
     /**
@@ -530,16 +436,9 @@ public class MoolrePaymentService {
         }
     }
 
-
-
-
-
-
-
-
-
-
-
+    /**
+     * Sends payment success email notification.
+     */
     private void sendPaymentSuccessEmail(PaymentData paymentData) {
         if (user == null || user.getUsername() == null) {
             logger.warning("User or email is null. Cannot send email.");
@@ -559,26 +458,21 @@ public class MoolrePaymentService {
                     StandardCharsets.UTF_8.name()
             );
 
-            // Prepare variables for the template
             Map<String, Object> properties = new HashMap<>();
-            properties.put("username", user.fullName());  // or user.getFullName() if that's the method
+            properties.put("username", user.fullName());
             properties.put("amount", paymentData.getAmount());
             properties.put("transactionId", paymentData.getTransactionid());
 
-            // Inject variables into the Thymeleaf template
             Context context = new Context();
             context.setVariables(properties);
 
-            // Use enum for template name
             String htmlContent = templateEngine.process(EmailTemplateName.PAYMENT_CONFIRMATION.getName(), context);
 
-            // Set email metadata
             helper.setFrom("optimusinforservice@gmail.com");
-            helper.setTo(user.getUsername());  // Consider renaming this field to getEmail() for clarity
+            helper.setTo(user.getUsername());
             helper.setSubject("Payment Confirmation - " + paymentData.getTransactionid());
             helper.setText(htmlContent, true);
 
-            // Send the email
             mailSender.send(mimeMessage);
             logger.info("Payment success email sent to: " + user.getUsername());
 
@@ -587,10 +481,4 @@ public class MoolrePaymentService {
             e.printStackTrace();
         }
     }
-
-
-
-
-
 }
-

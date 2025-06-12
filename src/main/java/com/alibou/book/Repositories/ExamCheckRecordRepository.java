@@ -19,4 +19,7 @@ public interface ExamCheckRecordRepository extends JpaRepository<ExamCheckRecord
     // Combined with status
     Optional<ExamCheckRecord> findByUserIdAndPaymentStatusAndExternalRef(
             String userId, PaymentStatus status, String externalRef);
+
+
+    Optional<ExamCheckRecord> findFirstByUserIdAndPaymentStatusOrderByCreatedAtDesc(String userId, PaymentStatus paymentStatus);
 }
