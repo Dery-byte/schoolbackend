@@ -3,9 +3,8 @@ package com.alibou.book.Services;
 import com.alibou.book.DTO.MoolrePaymentRequest;
 import com.alibou.book.DTO.PaymentData;
 import com.alibou.book.DTO.PaymentStatusRequest;
-import com.alibou.book.Entity.MoolrePaymentResponse;
-import com.alibou.book.Entity.Payment;
-import com.alibou.book.Entity.PaymentStatuss;
+import com.alibou.book.Entity.*;
+import com.alibou.book.Repositories.ExamCheckRecordRepository;
 import com.alibou.book.Repositories.PaymentRepository;
 import com.alibou.book.Repositories.PaymentStatusRepository;
 import com.alibou.book.config.MoolreConfig;
@@ -30,15 +29,14 @@ import org.thymeleaf.spring6.SpringTemplateEngine;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Principal;
+import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.hibernate.internal.CoreLogging.logger;
 import static org.springframework.mail.javamail.MimeMessageHelper.MULTIPART_MODE_MIXED;
 
 @Service
@@ -57,6 +55,7 @@ public class MoolrePaymentService {
    // private final EmailService mailService;
   //  private final MailServiceImpl mailServiceImpl;
   private final JavaMailSender mailSender;
+    private final ExamCheckRecordRepository examCheckRecordRepository;
 
 
     private  PaymentData paymentData;
@@ -77,7 +76,7 @@ public class MoolrePaymentService {
 
     // Thread-safe storage for external references mapped to user IDs (or phone numbers)
     private final Map<String, String> userPaymentReferences = new ConcurrentHashMap<>();
-    public MoolrePaymentService(MoolreConfig config, RestTemplate restTemplate, ObjectMapper objectMapper, PaymentStatusRepository paymentStatusRepository, JavaMailSender mailSender, PaymentRepository paymentRepository, UserDetailsService userDetailsService, EmailService mailService1, SpringTemplateEngine templateEngine, MNotifyV2SmsService mNotifyV2SmsService) {
+    public MoolrePaymentService(MoolreConfig config, RestTemplate restTemplate, ObjectMapper objectMapper, PaymentStatusRepository paymentStatusRepository, JavaMailSender mailSender, PaymentRepository paymentRepository, UserDetailsService userDetailsService, EmailService mailService1, SpringTemplateEngine templateEngine, MNotifyV2SmsService mNotifyV2SmsService, ExamCheckRecordRepository examCheckRecordRepository) {
         this.config = config;
         this.restTemplate = restTemplate;
         this.objectMapper = objectMapper;
@@ -87,6 +86,7 @@ public class MoolrePaymentService {
         this.userDetailsService = userDetailsService;
         this.templateEngine = templateEngine;
         this.mNotifyV2SmsService = mNotifyV2SmsService;
+        this.examCheckRecordRepository = examCheckRecordRepository;
     }
 
     /**
@@ -170,10 +170,33 @@ public class MoolrePaymentService {
         request.setCurrency("GHS");
         request.setType(1);
 
-        // Generate unique external reference
-        String externalRef = generateReference();
-        request.setExternalref(externalRef);
+        // JUST ADDED
+        Optional<ExamCheckRecord> existingRecord = examCheckRecordRepository.findByUserIdAndPaymentStatus(String.valueOf(user.getId()), PaymentStatus.PENDING);
 
+        // Generate unique external reference
+//        String externalRef = generateReference();
+//        request.setExternalref(externalRef);
+        String externalRef;
+
+        if (existingRecord.isPresent()) {
+            // Reuse existing reference
+            externalRef = existingRecord.get().getExternalRef();
+            log.info("Reusing existing payment reference {} for user {}", externalRef, user.getId());
+        } else {
+            // Generate new reference
+            externalRef = generateReference();
+            ExamCheckRecord newRecord = new ExamCheckRecord();
+            newRecord.setUserId(String.valueOf(user.getId()));
+            newRecord.setExternalRef(externalRef);
+            newRecord.setPaymentStatus(PaymentStatus.PENDING);
+            newRecord.setCreatedAt(Instant.now());
+            examCheckRecordRepository.save(newRecord);
+
+
+        }
+
+        request.setExternalref(externalRef);
+        log.info("Payment initiated with reference: {}", externalRef);
         System.out.println("For the webhook " + externalRef);
 
         // Save the externalRef in the Payment Entity
@@ -214,6 +237,12 @@ public class MoolrePaymentService {
             }
             return paymentResponse;
         } catch (Exception e) {
+
+            examCheckRecordRepository.findByExternalRef(externalRef)
+                    .ifPresent(record -> {
+                        record.setPaymentStatus(PaymentStatus.FAILED);
+                        examCheckRecordRepository.save(record);
+                    });
             log.error("Payment initiation failed: {}", e.getMessage(), e);
             throw new PaymentProcessingException("Failed to process payment. Please try again later.", e);
         }
@@ -416,8 +445,31 @@ public class MoolrePaymentService {
         PaymentStatuss paymentStatus = mapToPaymentStatus(paymentStatusRequest);
         // Save to database
         paymentStatusRepository.save(paymentStatus);
-        sendPaymentSuccessEmail(paymentData); // SEND EMAIL NOTIFICATION
-        sendPaymentSuccessNotification(paymentData); // SEND SMS NOTIFICATION
+        examCheckRecordRepository.findByExternalRef(paymentData.getExternalref())
+                .ifPresentOrElse(
+                        record -> {
+                            // Map payment status to exam record status
+                            PaymentStatus newStatus = paymentData.getTxstatus() == 1
+                                    ? PaymentStatus.PAID
+                                    : PaymentStatus.FAILED;
+                            record.setPaymentStatus(newStatus);
+                            record.setLastUpdated(Instant.now());
+
+                           // logger.info("Updated ExamCheckRecord {} to status {}", record.getId(), newStatus);
+                        },
+                        () -> logger.info("No ExamCheckRecord found for externalRef: {}"
+                        )
+                );
+
+
+        if (paymentData.getTxstatus() == 1) {
+            sendPaymentSuccessEmail(paymentData); // SEND EMAIL NOTIFICATION
+            sendPaymentSuccessNotification(paymentData); // SEND SMS NOTIFICATION
+        }
+
+
+
+
 
         // Notify UI through WebSockets
 //        messagingTemplate.convertAndSend("/topic/paymentStatus", paymentStatus);

@@ -26,6 +26,8 @@ public class ExamCheckRecord {
 
 //    @Embedded
 //    private ExamDetails examDetails;
+@Column(unique = true)  // Ensures one payment reference per record
+private String externalRef;  // Matches PaymentStatuss.externalRef
 
     @OneToOne(cascade = CascadeType.ALL)
     private WaecCandidateEntity waecCandidateEntity;

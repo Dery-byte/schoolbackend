@@ -31,8 +31,6 @@ public class PaymentStatuss {
     private String secret;  // Store the received secret
     private LocalDateTime timestamp;
 
-
-
     public void setTimestamp(String ts) {
         this.timestamp = LocalDateTime.parse(ts, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
     }

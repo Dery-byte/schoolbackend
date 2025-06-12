@@ -76,7 +76,7 @@ moolre:
   api:
     url: https://api.moolre.com/open/transact/payment
   callback:
-    url: https://daba-41-204-44-161.ngrok-free.app/api/v1/auth/payments/statusWebhook
+    url: https://339a-156-38-117-48.ngrok-free.app/api/v1/auth/payments/statusWebhook
   account-number: 10638206043532
   username: Mudita
   public-key: >-
