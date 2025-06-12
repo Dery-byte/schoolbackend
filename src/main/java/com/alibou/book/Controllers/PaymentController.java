@@ -105,7 +105,7 @@ private final MoolrePaymentService moolrePaymentService;
     //    WEBHOOK CONTROLLER
 
     @PostMapping("/statusWebhook")
-    @CrossOrigin(origins = "https://optimus-4fb5d.web.app")
+    //@CrossOrigin(origins = "https://optimus-4fb5d.web.app")
     public ResponseEntity<Map<String, String>> handlePaymentStatus(
             @RequestBody(required = false) PaymentStatusRequest request, Principal principal) {
 
@@ -150,6 +150,7 @@ private final MoolrePaymentService moolrePaymentService;
             ));
         }
     }
+
 
 
     @GetMapping("/payment-status/{externalRef}")
