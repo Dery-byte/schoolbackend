@@ -272,6 +272,7 @@ public class MoolrePaymentService {
 
         System.out.println("This is the externalRef " + externalRef);
 
+
         if (externalRef == null) {
             log.error("No stored External Reference for User: {}", principal.getName());
             throw new PaymentProcessingException("No External Reference found for OTP verification.");
