@@ -18,24 +18,25 @@ spring:
     database-platform: org.hibernate.dialect.MySQL8Dialect
 
   mail:
-    host: localhost
-    port: 1085
-    username: esss
-    password: sss
+    host: smtp.gmail.com
+    port: 587
+    username: optimusinforservice@gmail.com
+    password: dihuojwqwknnsjod
     properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+          debug: true
       logging:
         level:
           org.springframework.mail: DEBUG
           com.alibou.book.email: DEBUG
-      mail:
-        smtp:
-          trust: "*"
-        auth: true
-        starttls:
-          enabled: true
-        connectiontimeout: 5000
-        timeout: 3000
-        writetimeout: 5000
 
   security:
     oauth2:
@@ -76,7 +77,7 @@ moolre:
   api:
     url: https://api.moolre.com/open/transact/payment
   callback:
-    url: https://databundlbackend.onrender.com/api/v1/auth/payment/webhook
+    url: https://339a-156-38-117-48.ngrok-free.app/api/v1/auth/payments/statusWebhook
   account-number: 10638206043532
   username: Mudita
   public-key: >-
