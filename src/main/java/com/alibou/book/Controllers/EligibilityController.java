@@ -39,11 +39,10 @@ public class EligibilityController {
 
  @PostMapping("/check-eligibilityAll")
     public ResponseEntity<EligibilityRecord> checkEligibility(@RequestBody WaecCandidateEntity candidate,
-                                                              @RequestParam String recordId,
                                                               Principal principal) {
      User user = (User) userDetailsService.loadUserByUsername(principal.getName());
      String userId = String.valueOf(user.getId());
-     EligibilityRecord eligibility = waecApiService.checkEligibility(candidate, null, recordId, userId);
+     EligibilityRecord eligibility = waecApiService.checkEligibility(candidate, null, userId);
         return ResponseEntity.ok(eligibility);
     }
 

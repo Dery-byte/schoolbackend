@@ -509,11 +509,10 @@ public class WaecApiService {
     public EligibilityRecord checkEligibility(
             WaecCandidateEntity candidate,
             String universityType,
-            String recordId,
             String userId
     ) {
-        ExamCheckRecord examCheckRecord = examCheckRecordRepository.findById(recordId)
-                .orElseThrow(() -> new RuntimeException("Record not found: " + recordId));
+//        ExamCheckRecord examCheckRecord = examCheckRecordRepository.findById(recordId)
+//                .orElseThrow(() -> new RuntimeException("Record not found: " + recordId));
 
         System.out.println("\n🔍 Checking eligibility for: " + candidate.getCname() + " (Index: " + candidate.getCindex() + ")");
 
@@ -605,7 +604,7 @@ public class WaecApiService {
         record.setId(UUID.randomUUID().toString());
         record.setUserId(userId);
         record.setCreatedAt(LocalDateTime.ofInstant(Instant.now(), ZoneId.of("Africa/Accra")));
-        record.setExamCheckRecord(examCheckRecord);
+      //  record.setExamCheckRecord(examCheckRecord);
 
         List<UniversityEligibility> universityEntities = new ArrayList<>();
 
