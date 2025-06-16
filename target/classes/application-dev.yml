@@ -80,8 +80,7 @@ moolre:
     url: https://339a-156-38-117-48.ngrok-free.app/api/v1/auth/payments/statusWebhook
   account-number: 10638206043532
   username: Mudita
-  public-key: >-
-    eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyaWQiOjEwNjM4MiwiZXhwIjoxOTI1MDA5OTk5fQ.TlISuKTOcV_S1WM8LjPeFz9vE_64YNOH6fWKLglq7QY
+  public-key: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyaWQiOjEwNjM4MiwiZXhwIjoxOTI1MDA5OTk5fQ.TlISuKTOcV_S1WM8LjPeFz9vE_64YNOH6fWKLglq7QY
   webhook:
     secret: 6cd824e6-ea05-42f5-bf30-1d63c06b75a8
 
