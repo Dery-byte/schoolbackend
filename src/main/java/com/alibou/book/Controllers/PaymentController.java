@@ -32,15 +32,24 @@ private final MoolrePaymentService moolrePaymentService;
     private final PaymentStatusRepository paymentStatusRepository;
 
 
+//    @PostMapping("/initiate")
+//    public ResponseEntity<MoolrePaymentResponse> initiatePayment(
+//            Principal principal,
+//            @RequestBody MoolrePaymentRequest request
+//    ) {
+//        MoolrePaymentResponse response = moolrePaymentService.initiatePayment(principal, request);
+//        return ResponseEntity.ok(response);
+//    }
+
     @PostMapping("/initiate")
     public ResponseEntity<MoolrePaymentResponse> initiatePayment(
             Principal principal,
-            @RequestBody MoolrePaymentRequest request
+            @RequestBody MoolrePaymentRequest request,
+            @RequestParam(required = true) String recordId  // Optional parameter
     ) {
-        MoolrePaymentResponse response = moolrePaymentService.initiatePayment(principal, request);
+        MoolrePaymentResponse response = moolrePaymentService.initiatePayment(principal, request, String.valueOf(recordId));
         return ResponseEntity.ok(response);
     }
-
 
 
 

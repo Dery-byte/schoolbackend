@@ -80,21 +80,26 @@ public class MoolrePaymentService {
      * Prevents duplicate external references for the same user's pending payments.
      */
     @Transactional
-    public MoolrePaymentResponse initiatePayment(Principal principal, MoolrePaymentRequest request) {
+    public MoolrePaymentResponse initiatePayment(Principal principal, MoolrePaymentRequest request, String recordId) {
         User user = (User) userDetailsService.loadUserByUsername(principal.getName());
         this.user = user;
+        String externalRef = getOrCreateExternalReference(user, recordId);
 
         HttpHeaders headers = createHeaders();
         request.setAccountnumber(config.getAccountNumber());
         request.setCurrency("GHS");
         request.setType(1);
+        request.setReference("Optimus");
 
-        String externalRef = getOrCreateExternalReference(user);
+        if (externalRef == null || externalRef.isEmpty()) {
+            throw new PaymentProcessingException("Failed to generate payment reference");
+        }
         request.setExternalref(externalRef);
 
         log.info("Payment initiated for User: {} with External Ref: {}", principal.getName(), externalRef);
         System.out.println("For the webhook " + externalRef);
 
+        System.out.print("The resquest data for the OTP " + request);
         // Store externalRef for this user session
         userPaymentReferences.put(principal.getName(), externalRef);
 
@@ -129,27 +134,32 @@ public class MoolrePaymentService {
      * Gets existing pending ExamCheckRecord or creates a new one.
      * This prevents duplicate external references for the same user.
      */
-    private String getOrCreateExternalReference(User user) {
-        // Check if user has any pending payment records
-        Optional<ExamCheckRecord> existingRecord = examCheckRecordRepository
-                .findFirstByUserIdAndPaymentStatusOrderByCreatedAtDesc(
-                        String.valueOf(user.getId()),
-                        PaymentStatus.PENDING
-                );
+    private String getOrCreateExternalReference(User user, String recordId) {
+        if (recordId != null) {
+            Optional<ExamCheckRecord> recordOpt = examCheckRecordRepository.findById(String.valueOf(recordId));
+            if (recordOpt.isPresent()) {
+                ExamCheckRecord record = recordOpt.get();
+                if (record.getPaymentStatus() == PaymentStatus.PENDING &&
+                        record.getUserId().equals(String.valueOf(user.getId()))) {
 
-        if (existingRecord.isPresent()) {
-            // Reuse existing pending record
-            ExamCheckRecord record = existingRecord.get();
-            log.info("Reusing existing payment reference {} for user {}", record.getExternalRef(), user.getId());
-            return record.getExternalRef();
-        } else {
-            // Create new record with new external reference
-            String externalRef = generateReference();
-            ExamCheckRecord newRecord = createNewExamCheckRecord(user, externalRef);
-            examCheckRecordRepository.save(newRecord);
-            log.info("Created new payment reference {} for user {}", externalRef, user.getId());
-            return externalRef;
+                    // Generate new reference only when updating existing record
+                    String externalRef = generateReference();
+                    record.setExternalRef(externalRef);
+                    record.setLastUpdated(Instant.now());
+                    examCheckRecordRepository.save(record);
+                    return externalRef;
+                }
+            }
         }
+
+        // Generate new reference for new record
+        String externalRef = generateReference();
+        ExamCheckRecord newRecord = new ExamCheckRecord();
+        newRecord.setUserId(String.valueOf(user.getId()));
+        newRecord.setExternalRef(externalRef);
+        newRecord.setPaymentStatus(PaymentStatus.PENDING);
+        examCheckRecordRepository.save(newRecord);
+        return externalRef;
     }
 
     /**
