@@ -21,6 +21,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 @Service
 public class WaecApiService {
@@ -516,19 +517,58 @@ public class WaecApiService {
 
         System.out.println("\n🔍 Checking eligibility for: " + candidate.getCname() + " (Index: " + candidate.getCindex() + ")");
 
-        Map<String, String> subjectGrades = candidate.getResultDetails().stream()
-                .collect(Collectors.toMap(
-                        WaecResultDetailEntity::getSubject,
-                        r -> r.getGrade().trim().toUpperCase()
-                ));
+//        Map<String, String> subjectGrades = candidate.getResultDetails().stream()
+//                .collect(Collectors.toMap(
+//                        WaecResultDetailEntity::getSubject,
+//                        r -> r.getGrade().trim().toUpperCase()
+//                ));
+//
+//        Set<String> coreSubjects = Set.of("ENGLISH LANG", "MATHEMATICS(CORE)", "SOCIAL STUDIES", "INTEGRATED SCIENCE");
+//
+//        Map<String, Integer> gradeScale = Map.ofEntries(
+//                Map.entry("A1", 100), Map.entry("B2", 90), Map.entry("B3", 80),
+//                Map.entry("C4", 70), Map.entry("C5", 60), Map.entry("C6", 50),
+//                Map.entry("D7", 40), Map.entry("E8", 30), Map.entry("F9", 0), Map.entry("*", 0)
+//        );
 
-        Set<String> coreSubjects = Set.of("ENGLISH LANG", "MATHEMATICS(CORE)", "SOCIAL STUDIES", "INTEGRATED SCIENCE");
 
+        // Normalize function (can be moved to a utility class)
+        Function<String, String> normalizeSubject = subject -> {
+            Map<String, String> aliases = Map.of(
+                    "ENGLISH LANG", "ENGLISH LANGUAGE",
+                    "MATHS", "MATHEMATICS(CORE)",
+                    "MATHEMATICS", "MATHEMATICS(CORE)",
+                    "SOCIAL STUDY", "SOCIAL STUDIES",
+                    "INTEGRATED SCI", "INTEGRATED SCIENCE"
+            );
+            return aliases.getOrDefault(subject.trim().toUpperCase(), subject.trim().toUpperCase());
+        };
+
+// Canonical core subjects
+        Set<String> coreSubjects = Set.of(
+                "ENGLISH LANGUAGE",
+                "MATHEMATICS(CORE)",
+                "SOCIAL STUDIES",
+                "INTEGRATED SCIENCE"
+        );
+
+// Grade scale mapping
         Map<String, Integer> gradeScale = Map.ofEntries(
                 Map.entry("A1", 100), Map.entry("B2", 90), Map.entry("B3", 80),
                 Map.entry("C4", 70), Map.entry("C5", 60), Map.entry("C6", 50),
                 Map.entry("D7", 40), Map.entry("E8", 30), Map.entry("F9", 0), Map.entry("*", 0)
         );
+        Map<String, String> subjectGrades = candidate.getResultDetails().stream()
+                .collect(Collectors.toMap(
+                        result -> normalizeSubject.apply(result.getSubject()),
+                        result -> result.getGrade().trim().toUpperCase(),
+                        (grade1, grade2) -> {
+                            // In case of duplicate subjects, choose higher grade
+                            int g1 = gradeScale.getOrDefault(grade1, 0);
+                            int g2 = gradeScale.getOrDefault(grade2, 0);
+                            return g1 >= g2 ? grade1 : grade2;
+                        }
+                ));
 
         Map<University, List<Program>> eligibleProgramsMap = new HashMap<>();
         Map<University, List<Program>> alternativeProgramsMap = new HashMap<>();
