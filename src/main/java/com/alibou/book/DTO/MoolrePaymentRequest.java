@@ -11,6 +11,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class MoolrePaymentRequest {
+
+    @Builder.Default
     private Integer type = 1; // Fixed value for payment
     private Integer channel;   // 7-AT, 13-MTN, 6-Vodafone
     private String currency;   // GHS or NGN

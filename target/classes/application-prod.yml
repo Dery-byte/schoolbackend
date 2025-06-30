@@ -1,9 +1,9 @@
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3306/school
-    username: root
-    password: EMMARESCUE
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:sqlserver://schoolserver.database.windows.net:1433;database=school
+    username: mudita
+    password: EMM@RESCUe1
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
 
   jpa:
     hibernate:
@@ -13,9 +13,9 @@ spring:
       hibernate:
         ddl-auto: update  # Options: create, create-drop, update, validate, none
         format_sql: true
-        default_schema: farm
+        default_schema: school
     database:
-    database-platform: org.hibernate.dialect.MySQL8Dialect
+    database-platform: org.hibernate.dialect.SQLServer2016Dialect
 
   mail:
     host: smtp.gmail.com
