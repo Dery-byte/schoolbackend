@@ -114,7 +114,7 @@ public class AuthenticationService {
         emailService.sendEmail(
                 user.getUsername(),
                 user.getFullName(),
-                EmailTemplateName.ACCOUNT_ACTIVATION,
+                EmailTemplateName.valueOf(EmailTemplateName.ACCOUNT_ACTIVATION.getName()),
                 activationUrl,
                 newToken,
                 "Account activation"
