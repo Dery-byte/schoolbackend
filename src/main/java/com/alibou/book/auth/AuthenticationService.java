@@ -103,7 +103,6 @@ public class AuthenticationService {
                 .user(user)
                 .build();
         tokenRepository.save(token);
-
         return generatedToken;
     }
 
