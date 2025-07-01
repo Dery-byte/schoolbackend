@@ -47,7 +47,7 @@ spring:
 application:
   mailing:
     frontend:
-      activation-url: http://localhost:4200/activate-account
+      activation-url: https://school-52f23.web.app/
       jwk-set-uri: http://localhost:8080/realms/postgres/protocol/openid-connect/certs
 
   security:
