@@ -4,7 +4,7 @@ import lombok.Getter;
 
 @Getter
 public enum EmailTemplateName {
-    ACTIVATE_ACCOUNT("activate_account"),
+    ACCOUNT_ACTIVATION("activate_account"),
     PAYMENT_CONFIRMATION("payment_success");
 
     private final String name;
