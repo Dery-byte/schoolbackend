@@ -1,7 +1,7 @@
 spring:
   datasource:
-    url: jdbc:sqlserver://schoolserver.database.windows.net:1433;database=school
-    username: mudita
+    url: jdbc:sqlserver://schooldbservers.database.windows.net:1433;database=school
+    username: Mudita
     password: EMM@RESCUe1
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
 
@@ -13,7 +13,7 @@ spring:
       hibernate:
         ddl-auto: update  # Options: create, create-drop, update, validate, none
         format_sql: true
-        default_schema: school
+        #default_schema: school
     database:
     database-platform: org.hibernate.dialect.SQLServer2016Dialect
 

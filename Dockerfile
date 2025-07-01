@@ -50,6 +50,10 @@
 FROM maven:3.9.4-eclipse-temurin-21 AS build
 WORKDIR /app
 COPY pom.xml .
+# Clear Maven cache and force refresh
+RUN mvn dependency:purge-local-repository -DmanualInclude="org.webjars:swagger-ui"
+RUN mvn dependency:resolve -U
+
 COPY . .
 
 RUN rm -f /app/src/main/java/com/alibou/book/Entity/ResultDetail.java

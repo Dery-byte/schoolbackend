@@ -15,11 +15,11 @@
       </jdbc-additional-properties>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
-    <data-source source="LOCAL" name="school@schoolserver.database.windows.net" uuid="8029d028-0101-4816-ac39-0eae4dda76c1">
+    <data-source source="LOCAL" name="school@schooldbservers.database.windows.net" uuid="998ab4ab-c88d-4e57-907f-857718c76237">
       <driver-ref>azure.ms</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>com.microsoft.sqlserver.jdbc.SQLServerDriver</jdbc-driver>
-      <jdbc-url>jdbc:sqlserver://schoolserver.database.windows.net:1433;database=school</jdbc-url>
+      <jdbc-url>jdbc:sqlserver://schooldbservers.database.windows.net:1433;database=school</jdbc-url>
       <jdbc-additional-properties>
         <property name="com.intellij.clouds.kubernetes.db.host.port" />
         <property name="com.intellij.clouds.kubernetes.db.enabled" value="false" />
