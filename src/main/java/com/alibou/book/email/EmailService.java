@@ -53,7 +53,7 @@ public class EmailService {
         Context context = new Context();
         context.setVariables(properties);
 
-        helper.setFrom("emmanuelderryshare@gmail.com");
+        helper.setFrom("optimusinforservice@gmail.com");
         helper.setTo(to);
         helper.setSubject(subject);
         System.out.println("Activation Link: " + confirmationUrl);
