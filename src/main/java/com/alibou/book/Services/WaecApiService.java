@@ -517,19 +517,7 @@ public class WaecApiService {
 
         System.out.println("\n🔍 Checking eligibility for: " + candidate.getCname() + " (Index: " + candidate.getCindex() + ")");
 
-//        Map<String, String> subjectGrades = candidate.getResultDetails().stream()
-//                .collect(Collectors.toMap(
-//                        WaecResultDetailEntity::getSubject,
-//                        r -> r.getGrade().trim().toUpperCase()
-//                ));
-//
-//        Set<String> coreSubjects = Set.of("ENGLISH LANG", "MATHEMATICS(CORE)", "SOCIAL STUDIES", "INTEGRATED SCIENCE");
-//
-//        Map<String, Integer> gradeScale = Map.ofEntries(
-//                Map.entry("A1", 100), Map.entry("B2", 90), Map.entry("B3", 80),
-//                Map.entry("C4", 70), Map.entry("C5", 60), Map.entry("C6", 50),
-//                Map.entry("D7", 40), Map.entry("E8", 30), Map.entry("F9", 0), Map.entry("*", 0)
-//        );
+
 
 
         // Normalize function (can be moved to a utility class)
