@@ -26,6 +26,10 @@ public class AlternativeProgram {
     @ElementCollection
     private List<String> explanations;
 
+
+    @OneToOne(cascade = CascadeType.ALL)
+    private AIRecommendation aiRecommendation;
+
     private double percentage;
     private double admissionProbability;
 

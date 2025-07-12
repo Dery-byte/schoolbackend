@@ -8,6 +8,7 @@ import com.alibou.book.Repositories.ProgramRepository;
 import com.alibou.book.Repositories.WaecCandidateRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpStatus;
@@ -35,6 +36,12 @@ public class WaecApiService {
 
     private final EligibilityRecordRepository eligibilityRecordRepository;
 
+    private final ProgramRecommendationService aiRecommendationService;
+
+
+
+
+
     @Value("${waec.api.url}")
     private String apiUrl;
 
@@ -42,13 +49,14 @@ public class WaecApiService {
             RestTemplate waecApiRestTemplate,
             ObjectMapper objectMapper,
             WaecCandidateRepository waecCandidateRepository,
-            ProgramRepository programRepository, ExamCheckRecordRepository examCheckRecordRepository, EligibilityRecordRepository eligibilityRecordRepository) {
+            ProgramRepository programRepository, ExamCheckRecordRepository examCheckRecordRepository, EligibilityRecordRepository eligibilityRecordRepository, ProgramRecommendationService aiRecommendationService) {
         this.waecApiRestTemplate = waecApiRestTemplate;
         this.objectMapper = objectMapper;
         this.waecCandidateRepository = waecCandidateRepository;
         this.programRepository = programRepository;
         this.examCheckRecordRepository = examCheckRecordRepository;
         this.eligibilityRecordRepository = eligibilityRecordRepository;
+        this.aiRecommendationService = aiRecommendationService;
     }
 
 
@@ -507,182 +515,182 @@ public class WaecApiService {
 //        return response;
 //    }
 
-    public EligibilityRecord checkEligibility(
-            WaecCandidateEntity candidate,
-            String universityType,
-            String userId
-    ) {
-//        ExamCheckRecord examCheckRecord = examCheckRecordRepository.findById(recordId)
-//                .orElseThrow(() -> new RuntimeException("Record not found: " + recordId));
-
-        System.out.println("\n🔍 Checking eligibility for: " + candidate.getCname() + " (Index: " + candidate.getCindex() + ")");
-
-
-
-
-        // Normalize function (can be moved to a utility class)
-        Function<String, String> normalizeSubject = subject -> {
-            Map<String, String> aliases = Map.of(
-                    "ENGLISH LANG", "ENGLISH LANGUAGE",
-                    "MATHS", "MATHEMATICS(CORE)",
-                    "MATHEMATICS", "MATHEMATICS(CORE)",
-                    "SOCIAL STUDY", "SOCIAL STUDIES",
-                    "INTEGRATED SCI", "INTEGRATED SCIENCE"
-            );
-            return aliases.getOrDefault(subject.trim().toUpperCase(), subject.trim().toUpperCase());
-        };
-
-// Canonical core subjects
-        Set<String> coreSubjects = Set.of(
-                "ENGLISH LANGUAGE",
-                "MATHEMATICS(CORE)",
-                "SOCIAL STUDIES",
-                "INTEGRATED SCIENCE"
-        );
-
-// Grade scale mapping
-        Map<String, Integer> gradeScale = Map.ofEntries(
-                Map.entry("A1", 100), Map.entry("B2", 90), Map.entry("B3", 80),
-                Map.entry("C4", 70), Map.entry("C5", 60), Map.entry("C6", 50),
-                Map.entry("D7", 40), Map.entry("E8", 30), Map.entry("F9", 0), Map.entry("*", 0)
-        );
-        Map<String, String> subjectGrades = candidate.getResultDetails().stream()
-                .collect(Collectors.toMap(
-                        result -> normalizeSubject.apply(result.getSubject()),
-                        result -> result.getGrade().trim().toUpperCase(),
-                        (grade1, grade2) -> {
-                            // In case of duplicate subjects, choose higher grade
-                            int g1 = gradeScale.getOrDefault(grade1, 0);
-                            int g2 = gradeScale.getOrDefault(grade2, 0);
-                            return g1 >= g2 ? grade1 : grade2;
-                        }
-                ));
-
-        Map<University, List<Program>> eligibleProgramsMap = new HashMap<>();
-        Map<University, List<Program>> alternativeProgramsMap = new HashMap<>();
-        Map<Program, List<String>> programExplanations = new HashMap<>();
-        Map<Program, Double> percentageMap = new HashMap<>();
-
-        for (Program program : programRepository.findAll()) {
-            University university = program.getUniversity();
-
-            boolean eligible = true;
-            int scoreDifference = 0;
-            boolean failedCore = false;
-            List<Integer> scores = new ArrayList<>();
-            List<String> explanation = new ArrayList<>();
-
-            for (Map.Entry<String, String> requirement : program.getCutoffPoints().entrySet()) {
-                String subject = requirement.getKey();
-                String requiredGrade = requirement.getValue().trim().toUpperCase();
-                String userGrade = subjectGrades.get(subject);
-
-                if (userGrade == null || !gradeScale.containsKey(userGrade) || !gradeScale.containsKey(requiredGrade)) {
-                    explanation.add("Invalid or missing grade for subject: " + subject);
-                    eligible = false;
-                    break;
-                }
-
-                int userScore = gradeScale.get(userGrade);
-                int requiredScore = gradeScale.get(requiredGrade);
-
-                if (coreSubjects.contains(subject) && (userGrade.equals("F9") || userGrade.equals("*"))) {
-                    failedCore = true;
-                }
-
-                scores.add(userScore);
-
-                if (userScore < requiredScore) {
-                    int diff = requiredScore - userScore;
-                    scoreDifference += diff;
-                    explanation.add(String.format("Subject: %s - Required: %s (%d), Got: %s (%d), Diff: -%d",
-                            subject, requiredGrade, requiredScore, userGrade, userScore, diff));
-                    eligible = false;
-                }
-            }
-
-            double percentage = (failedCore || scores.isEmpty())
-                    ? 0.0
-                    : Math.round(scores.stream().mapToInt(i -> i).average().orElse(0.0) * 100.0) / 100.0;
-
-            double probability = estimateAdmissionProbability(percentage);
-            percentageMap.put(program, percentage);
-
-            if (eligible && !failedCore) {
-                eligibleProgramsMap.computeIfAbsent(university, u -> new ArrayList<>()).add(program);
-            } else if (!failedCore && scoreDifference <= 20) {
-                alternativeProgramsMap.computeIfAbsent(university, u -> new ArrayList<>()).add(program);
-                programExplanations.put(program, explanation);
-            }
-        }
-
-        Set<University> allUniversities = new HashSet<>();
-        allUniversities.addAll(eligibleProgramsMap.keySet());
-        allUniversities.addAll(alternativeProgramsMap.keySet());
-
-        if (universityType != null && !universityType.isBlank()) {
-            String typeFilter = universityType.trim().toUpperCase();
-            allUniversities = allUniversities.stream()
-                    .filter(u -> u.getType().name().equalsIgnoreCase(typeFilter))
-                    .collect(Collectors.toSet());
-        }
-
-        // ✅ Create the EligibilityRecord early
-        EligibilityRecord record = new EligibilityRecord();
-        record.setId(UUID.randomUUID().toString());
-        record.setUserId(userId);
-        record.setCreatedAt(LocalDateTime.ofInstant(Instant.now(), ZoneId.of("Africa/Accra")));
-      //  record.setExamCheckRecord(examCheckRecord);
-
-        List<UniversityEligibility> universityEntities = new ArrayList<>();
-
-        for (University university : allUniversities) {
-            UniversityEligibility entity = new UniversityEligibility();
-            entity.setUniversityName(university.getName());
-            entity.setLocation(university.getLocation());
-            entity.setType(university.getType().name());
-
-            // 🔁 Link back to parent EligibilityRecord
-            entity.setEligibilityRecord(record);
-
-            List<EligibleProgram> eligiblePrograms = eligibleProgramsMap.getOrDefault(university, List.of()).stream()
-                    .map(p -> {
-                        double percent = percentageMap.getOrDefault(p, 0.0);
-
-                        EligibleProgram ep = new EligibleProgram();
-                        ep.setName(p.getName());
-                        ep.setCutoffPoints(p.getCutoffPoints());
-                        ep.setPercentage(percent);
-                        ep.setUniversityEligibility(entity); // back-link
-                        return ep;
-                    }).collect(Collectors.toList());
-
-            List<AlternativeProgram> alternativePrograms = alternativeProgramsMap.getOrDefault(university, List.of()).stream()
-                    .map(p -> {
-                        double percent = percentageMap.getOrDefault(p, 0.0);
-
-                        AlternativeProgram ap = new AlternativeProgram();
-                        ap.setName(p.getName());
-                        ap.setCutoffPoints(p.getCutoffPoints());
-                        ap.setExplanations(programExplanations.getOrDefault(p, List.of()));
-                        ap.setPercentage(percent);
-                        ap.setUniversityEligibility(entity); // back-link
-                        return ap;
-                    }).collect(Collectors.toList());
-
-            entity.setEligiblePrograms(eligiblePrograms);
-            entity.setAlternativePrograms(alternativePrograms);
-
-            universityEntities.add(entity);
-        }
-
-        // 🔁 Finally link universities to the record
-        record.setUniversities(universityEntities);
-
-        return eligibilityRecordRepository.save(record);
-    }
-
-
+//    public EligibilityRecord checkEligibility(
+//            WaecCandidateEntity candidate,
+//            String universityType,
+//            String userId
+//    ) {
+////        ExamCheckRecord examCheckRecord = examCheckRecordRepository.findById(recordId)
+////                .orElseThrow(() -> new RuntimeException("Record not found: " + recordId));
+//
+//        System.out.println("\n🔍 Checking eligibility for: " + candidate.getCname() + " (Index: " + candidate.getCindex() + ")");
+//
+//
+//
+//
+//        // Normalize function (can be moved to a utility class)
+//        Function<String, String> normalizeSubject = subject -> {
+//            Map<String, String> aliases = Map.of(
+//                    "ENGLISH LANG", "ENGLISH LANGUAGE",
+//                    "MATHS", "MATHEMATICS(CORE)",
+//                    "MATHEMATICS", "MATHEMATICS(CORE)",
+//                    "SOCIAL STUDY", "SOCIAL STUDIES",
+//                    "INTEGRATED SCI", "INTEGRATED SCIENCE"
+//            );
+//            return aliases.getOrDefault(subject.trim().toUpperCase(), subject.trim().toUpperCase());
+//        };
+//
+//// Canonical core subjects
+//        Set<String> coreSubjects = Set.of(
+//                "ENGLISH LANGUAGE",
+//                "MATHEMATICS(CORE)",
+//                "SOCIAL STUDIES",
+//                "INTEGRATED SCIENCE"
+//        );
+//
+//// Grade scale mapping
+//        Map<String, Integer> gradeScale = Map.ofEntries(
+//                Map.entry("A1", 100), Map.entry("B2", 90), Map.entry("B3", 80),
+//                Map.entry("C4", 70), Map.entry("C5", 60), Map.entry("C6", 50),
+//                Map.entry("D7", 40), Map.entry("E8", 30), Map.entry("F9", 0), Map.entry("*", 0)
+//        );
+//        Map<String, String> subjectGrades = candidate.getResultDetails().stream()
+//                .collect(Collectors.toMap(
+//                        result -> normalizeSubject.apply(result.getSubject()),
+//                        result -> result.getGrade().trim().toUpperCase(),
+//                        (grade1, grade2) -> {
+//                            // In case of duplicate subjects, choose higher grade
+//                            int g1 = gradeScale.getOrDefault(grade1, 0);
+//                            int g2 = gradeScale.getOrDefault(grade2, 0);
+//                            return g1 >= g2 ? grade1 : grade2;
+//                        }
+//                ));
+//
+//        Map<University, List<Program>> eligibleProgramsMap = new HashMap<>();
+//        Map<University, List<Program>> alternativeProgramsMap = new HashMap<>();
+//        Map<Program, List<String>> programExplanations = new HashMap<>();
+//        Map<Program, Double> percentageMap = new HashMap<>();
+//
+//        for (Program program : programRepository.findAll()) {
+//            University university = program.getUniversity();
+//
+//            boolean eligible = true;
+//            int scoreDifference = 0;
+//            boolean failedCore = false;
+//            List<Integer> scores = new ArrayList<>();
+//            List<String> explanation = new ArrayList<>();
+//
+//            for (Map.Entry<String, String> requirement : program.getCutoffPoints().entrySet()) {
+//                String subject = requirement.getKey();
+//                String requiredGrade = requirement.getValue().trim().toUpperCase();
+//                String userGrade = subjectGrades.get(subject);
+//
+//                if (userGrade == null || !gradeScale.containsKey(userGrade) || !gradeScale.containsKey(requiredGrade)) {
+//                    explanation.add("Invalid or missing grade for subject: " + subject);
+//                    eligible = false;
+//                    break;
+//                }
+//
+//                int userScore = gradeScale.get(userGrade);
+//                int requiredScore = gradeScale.get(requiredGrade);
+//
+//                if (coreSubjects.contains(subject) && (userGrade.equals("F9") || userGrade.equals("*"))) {
+//                    failedCore = true;
+//                }
+//
+//                scores.add(userScore);
+//
+//                if (userScore < requiredScore) {
+//                    int diff = requiredScore - userScore;
+//                    scoreDifference += diff;
+//                    explanation.add(String.format("Subject: %s - Required: %s (%d), Got: %s (%d), Diff: -%d",
+//                            subject, requiredGrade, requiredScore, userGrade, userScore, diff));
+//                    eligible = false;
+//                }
+//            }
+//
+//            double percentage = (failedCore || scores.isEmpty())
+//                    ? 0.0
+//                    : Math.round(scores.stream().mapToInt(i -> i).average().orElse(0.0) * 100.0) / 100.0;
+//
+//            double probability = estimateAdmissionProbability(percentage);
+//            percentageMap.put(program, percentage);
+//
+//            if (eligible && !failedCore) {
+//                eligibleProgramsMap.computeIfAbsent(university, u -> new ArrayList<>()).add(program);
+//            } else if (!failedCore && scoreDifference <= 20) {
+//                alternativeProgramsMap.computeIfAbsent(university, u -> new ArrayList<>()).add(program);
+//                programExplanations.put(program, explanation);
+//            }
+//        }
+//
+//        Set<University> allUniversities = new HashSet<>();
+//        allUniversities.addAll(eligibleProgramsMap.keySet());
+//        allUniversities.addAll(alternativeProgramsMap.keySet());
+//
+//        if (universityType != null && !universityType.isBlank()) {
+//            String typeFilter = universityType.trim().toUpperCase();
+//            allUniversities = allUniversities.stream()
+//                    .filter(u -> u.getType().name().equalsIgnoreCase(typeFilter))
+//                    .collect(Collectors.toSet());
+//        }
+//
+//        // ✅ Create the EligibilityRecord early
+//        EligibilityRecord record = new EligibilityRecord();
+//        record.setId(UUID.randomUUID().toString());
+//        record.setUserId(userId);
+//        record.setCreatedAt(LocalDateTime.ofInstant(Instant.now(), ZoneId.of("Africa/Accra")));
+//      //  record.setExamCheckRecord(examCheckRecord);
+//
+//        List<UniversityEligibility> universityEntities = new ArrayList<>();
+//
+//        for (University university : allUniversities) {
+//            UniversityEligibility entity = new UniversityEligibility();
+//            entity.setUniversityName(university.getName());
+//            entity.setLocation(university.getLocation());
+//            entity.setType(university.getType().name());
+//
+//            // 🔁 Link back to parent EligibilityRecord
+//            entity.setEligibilityRecord(record);
+//
+//            List<EligibleProgram> eligiblePrograms = eligibleProgramsMap.getOrDefault(university, List.of()).stream()
+//                    .map(p -> {
+//                        double percent = percentageMap.getOrDefault(p, 0.0);
+//
+//                        EligibleProgram ep = new EligibleProgram();
+//                        ep.setName(p.getName());
+//                        ep.setCutoffPoints(p.getCutoffPoints());
+//                        ep.setPercentage(percent);
+//                        ep.setUniversityEligibility(entity); // back-link
+//                        return ep;
+//                    }).collect(Collectors.toList());
+//
+//            List<AlternativeProgram> alternativePrograms = alternativeProgramsMap.getOrDefault(university, List.of()).stream()
+//                    .map(p -> {
+//                        double percent = percentageMap.getOrDefault(p, 0.0);
+//
+//                        AlternativeProgram ap = new AlternativeProgram();
+//                        ap.setName(p.getName());
+//                        ap.setCutoffPoints(p.getCutoffPoints());
+//                        ap.setExplanations(programExplanations.getOrDefault(p, List.of()));
+//                        ap.setPercentage(percent);
+//                        ap.setUniversityEligibility(entity); // back-link
+//                        return ap;
+//                    }).collect(Collectors.toList());
+//
+//            entity.setEligiblePrograms(eligiblePrograms);
+//            entity.setAlternativePrograms(alternativePrograms);
+//
+//            universityEntities.add(entity);
+//        }
+//
+//        // 🔁 Finally link universities to the record
+//        record.setUniversities(universityEntities);
+//
+//        return eligibilityRecordRepository.save(record);
+//    }
+//
+//
 
 
 
@@ -702,4 +710,227 @@ public class WaecApiService {
     }
 
 
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        public EligibilityRecord checkEligibility(
+                WaecCandidateEntity candidate,
+                String universityType,
+                String userId) {
+
+            System.out.println("\n🔍 Checking eligibility for: " + candidate.getCname() +
+                    " (Index: " + candidate.getCindex() + ")");
+
+            // Normalize subject names
+            Function<String, String> normalizeSubject = subject -> {
+                Map<String, String> aliases = Map.of(
+                        "ENGLISH LANG", "ENGLISH LANGUAGE",
+                        "MATHS", "MATHEMATICS(CORE)",
+                        "MATHEMATICS", "MATHEMATICS(CORE)",
+                        "SOCIAL STUDY", "SOCIAL STUDIES",
+                        "INTEGRATED SCI", "INTEGRATED SCIENCE"
+                );
+                return aliases.getOrDefault(subject.trim().toUpperCase(), subject.trim().toUpperCase());
+            };
+
+            // Core subjects and grade scale
+            Set<String> coreSubjects = Set.of(
+                    "ENGLISH LANGUAGE",
+                    "MATHEMATICS(CORE)",
+                    "SOCIAL STUDIES",
+                    "INTEGRATED SCIENCE"
+            );
+
+            Map<String, Integer> gradeScale = Map.ofEntries(
+                    Map.entry("A1", 100), Map.entry("B2", 90), Map.entry("B3", 80),
+                    Map.entry("C4", 70), Map.entry("C5", 60), Map.entry("C6", 50),
+                    Map.entry("D7", 40), Map.entry("E8", 30), Map.entry("F9", 0),
+                    Map.entry("*", 0)
+            );
+
+            // Process candidate's grades
+            Map<String, String> subjectGrades = candidate.getResultDetails().stream()
+                    .collect(Collectors.toMap(
+                            result -> normalizeSubject.apply(result.getSubject()),
+                            result -> result.getGrade().trim().toUpperCase(),
+                            (grade1, grade2) -> {
+                                int g1 = gradeScale.getOrDefault(grade1, 0);
+                                int g2 = gradeScale.getOrDefault(grade2, 0);
+                                return g1 >= g2 ? grade1 : grade2;
+                            }
+                    ));
+
+            // Initialize data structures
+            Map<University, List<Program>> eligibleProgramsMap = new HashMap<>();
+            Map<University, List<Program>> alternativeProgramsMap = new HashMap<>();
+            Map<Program, List<String>> programExplanations = new HashMap<>();
+            Map<Program, Double> percentageMap = new HashMap<>();
+
+            // Evaluate all programs
+            for (Program program : programRepository.findAll()) {
+                University university = program.getUniversity();
+                boolean eligible = true;
+                int scoreDifference = 0;
+                boolean failedCore = false;
+                List<Integer> scores = new ArrayList<>();
+                List<String> explanation = new ArrayList<>();
+
+                for (Map.Entry<String, String> requirement : program.getCutoffPoints().entrySet()) {
+                    String subject = requirement.getKey();
+                    String requiredGrade = requirement.getValue().trim().toUpperCase();
+                    String userGrade = subjectGrades.get(subject);
+
+                    if (userGrade == null || !gradeScale.containsKey(userGrade)){
+                        explanation.add("Missing grade for: " + subject);
+                        eligible = false;
+                        break;
+                    }
+
+                    int userScore = gradeScale.get(userGrade);
+                    int requiredScore = gradeScale.get(requiredGrade);
+
+                    if (coreSubjects.contains(subject) && (userGrade.equals("F9") || userGrade.equals("*"))) {
+                        failedCore = true;
+                    }
+
+                    scores.add(userScore);
+
+                    if (userScore < requiredScore) {
+                        int diff = requiredScore - userScore;
+                        scoreDifference += diff;
+                        explanation.add(String.format("%s: Required %s (%d), Got %s (%d)",
+                                subject, requiredGrade, requiredScore, userGrade, userScore));
+                        eligible = false;
+                    }
+                }
+
+                double percentage = (failedCore || scores.isEmpty()) ? 0.0 :
+                        Math.round(scores.stream().mapToInt(i -> i).average().orElse(0.0) * 100.0) / 100.0;
+
+                percentageMap.put(program, percentage);
+
+                if (eligible && !failedCore) {
+                    eligibleProgramsMap.computeIfAbsent(university, u -> new ArrayList<>()).add(program);
+                } else if (!failedCore && scoreDifference <= 20) {
+                    alternativeProgramsMap.computeIfAbsent(university, u -> new ArrayList<>()).add(program);
+                    programExplanations.put(program, explanation);
+                }
+            }
+
+            // Generate AI recommendations
+            Map<Program, AIRecommendation> aiRecommendations = aiRecommendationService
+                    .generateRecommendations(eligibleProgramsMap, alternativeProgramsMap, candidate);
+
+            // Filter universities by type
+            Set<University> allUniversities = new HashSet<>();
+            allUniversities.addAll(eligibleProgramsMap.keySet());
+            allUniversities.addAll(alternativeProgramsMap.keySet());
+
+            if (universityType != null && !universityType.isBlank()) {
+                allUniversities = allUniversities.stream()
+                        .filter(u -> u.getType().name().equalsIgnoreCase(universityType.trim()))
+                        .collect(Collectors.toSet());
+            }
+
+            // Create eligibility record
+            EligibilityRecord record = new EligibilityRecord();
+            record.setId(UUID.randomUUID().toString());
+            record.setUserId(userId);
+            record.setCreatedAt(LocalDateTime.now(ZoneId.of("Africa/Accra")));
+
+            // Process universities and programs
+            List<UniversityEligibility> universityEntities = allUniversities.stream()
+                    .map(university -> createUniversityEligibility(
+                            university,
+                            eligibleProgramsMap.getOrDefault(university, List.of()),
+                            alternativeProgramsMap.getOrDefault(university, List.of()),
+                            programExplanations,
+                            percentageMap,
+                            aiRecommendations,
+                            record))
+                    .collect(Collectors.toList());
+
+            record.setUniversities(universityEntities);
+            return eligibilityRecordRepository.save(record);
+        }
+
+        private UniversityEligibility createUniversityEligibility(
+                University university,
+                List<Program> eligiblePrograms,
+                List<Program> alternativePrograms,
+                Map<Program, List<String>> programExplanations,
+                Map<Program, Double> percentageMap,
+                Map<Program, AIRecommendation> aiRecommendations,
+                EligibilityRecord record) {
+
+            UniversityEligibility entity = new UniversityEligibility();
+            entity.setUniversityName(university.getName());
+            entity.setLocation(university.getLocation());
+            entity.setType(university.getType().name());
+            entity.setEligibilityRecord(record);
+
+            // Process eligible programs
+            List<EligibleProgram> eligibleProgramEntities = eligiblePrograms.stream()
+                    .map(program -> {
+                        EligibleProgram ep = new EligibleProgram();
+                        ep.setName(program.getName());
+                        ep.setCutoffPoints(program.getCutoffPoints());
+                        ep.setPercentage(percentageMap.get(program));
+                        ep.setAiRecommendation(aiRecommendations.get(program));
+                        ep.setUniversityEligibility(entity);
+                        return ep;
+                    })
+                    .collect(Collectors.toList());
+
+            // Process alternative programs
+            List<AlternativeProgram> alternativeProgramEntities = alternativePrograms.stream()
+                    .map(program -> {
+                        AlternativeProgram ap = new AlternativeProgram();
+                        ap.setName(program.getName());
+                        ap.setCutoffPoints(program.getCutoffPoints());
+                        ap.setPercentage(percentageMap.get(program));
+                        ap.setExplanations(programExplanations.get(program));
+                        ap.setAiRecommendation(aiRecommendations.get(program));
+                        ap.setUniversityEligibility(entity);
+                        return ap;
+                    })
+                    .collect(Collectors.toList());
+
+            entity.setEligiblePrograms(eligibleProgramEntities);
+            entity.setAlternativePrograms(alternativeProgramEntities);
+
+            return entity;
+        }
+    }
+

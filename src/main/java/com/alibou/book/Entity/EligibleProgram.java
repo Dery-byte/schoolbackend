@@ -27,6 +27,11 @@ public class EligibleProgram {
     private double percentage;
     private double admissionProbability;
 
+
+
+    @OneToOne(cascade = CascadeType.ALL)
+    private AIRecommendation aiRecommendation;
+
     @ManyToOne
     @JoinColumn(name = "university_eligibility_id")
     @JsonBackReference

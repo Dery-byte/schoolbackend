@@ -94,7 +94,9 @@ mnotify:
     key: oWmpfPGz22BObP6ng9Zjb0Xe4
     sender-id: OPTUMSERV
 
-price:
-  ranges:
-    step-size: 50.0
-    max-before-plus: 200.0
+#GOOGLE GEMINI PROPERTIES
+google:
+  gemini:
+    api:
+      key: AIzaSyC9uCkkvOIYzV2c2SQwlCy6hGChAEIqWHw
+      url: https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent
