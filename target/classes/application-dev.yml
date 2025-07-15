@@ -49,6 +49,7 @@ application:
     frontend:
       activation-url: http://localhost:4200/activate-account
       jwk-set-uri: http://localhost:8080/realms/postgres/protocol/openid-connect/certs
+      baseUrl: http://localhost:4200
 
   security:
     jwt:

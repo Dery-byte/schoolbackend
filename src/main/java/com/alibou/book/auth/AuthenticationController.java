@@ -1,5 +1,7 @@
 package com.alibou.book.auth;
 
+import com.alibou.book.DTO.ForgottenPasswordRequest;
+import com.alibou.book.DTO.ResetPasswordRequest;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.mail.MessagingException;
 import jakarta.validation.Valid;
@@ -36,6 +38,28 @@ public class AuthenticationController {
     public void confirm(@RequestParam String token) throws MessagingException {
         service.activateAccount(token);
     }
+
+
+
+
+
+
+    @PostMapping("/forgotten-password")
+    public ResponseEntity<Void> forgottenPassword(
+            @RequestBody ForgottenPasswordRequest request
+    ) throws MessagingException {
+        service.forgottenPassword(request);
+        return ResponseEntity.accepted().build();
+    }
+    @PostMapping("/update-password")
+    public ResponseEntity<Void> resetPassword(
+            @RequestBody ResetPasswordRequest request
+    ) {
+        service.resetPassword(request);
+        return ResponseEntity.ok().build();
+    }
+
+
 
 
 

@@ -27,40 +27,62 @@ public class EmailService {
     @Async
     public void sendEmail(
             String to,
-            String username,
             EmailTemplateName emailTemplate,
-            String confirmationUrl,
-            String activationCode,
+            Map<String, Object> properties,
             String subject
     ) throws MessagingException {
-        String templateName;
-        if (emailTemplate == null) {
-            templateName = "confirm-email";
-        } else {
-            templateName = emailTemplate.getName();
-        }
+        String templateName = emailTemplate != null ? emailTemplate.getName() : "confirm-email";
         MimeMessage mimeMessage = mailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(
-                mimeMessage,
-                MULTIPART_MODE_MIXED,
-                UTF_8.name()
-        );
-        Map<String, Object> properties = new HashMap<>();
-        properties.put("username", username);
-        properties.put("confirmationUrl", confirmationUrl);
-        properties.put("activation_code", activationCode);
+        MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, MULTIPART_MODE_MIXED, UTF_8.name());
 
         Context context = new Context();
-        context.setVariables(properties);
+        context.setVariables(properties); // ✅ caller controls variable names
 
         helper.setFrom("optimusinforservice@gmail.com");
         helper.setTo(to);
         helper.setSubject(subject);
-        System.out.println("Activation Link: " + confirmationUrl);
-        System.out.println("Activation link sent to " + to);
 
         String template = templateEngine.process(templateName, context);
         helper.setText(template, true);
         mailSender.send(mimeMessage);
-    }
-}
+    }}
+
+//    public void sendEmail(
+//            String to,
+//            String username,
+//            EmailTemplateName emailTemplate,
+//            String confirmationUrl,
+//            String activationCode,
+//            String subject
+//    ) throws MessagingException {
+//        String templateName;
+//        if (emailTemplate == null) {
+//            templateName = "confirm-email";
+//        } else {
+//            templateName = emailTemplate.getName();
+//        }
+//        MimeMessage mimeMessage = mailSender.createMimeMessage();
+//        MimeMessageHelper helper = new MimeMessageHelper(
+//                mimeMessage,
+//                MULTIPART_MODE_MIXED,
+//                UTF_8.name()
+//        );
+//        Map<String, Object> properties = new HashMap<>();
+//        properties.put("username", username);
+//        properties.put("confirmationUrl", confirmationUrl);
+//        properties.put("activation_code", activationCode);
+//
+//        Context context = new Context();
+//        context.setVariables(properties);
+//
+//        helper.setFrom("optimusinforservice@gmail.com");
+//        helper.setTo(to);
+//        helper.setSubject(subject);
+//        System.out.println("Activation Link: " + confirmationUrl);
+//        System.out.println("Activation link sent to " + to);
+//
+//        String template = templateEngine.process(templateName, context);
+//        helper.setText(template, true);
+//        mailSender.send(mimeMessage);
+//    }
+//}
