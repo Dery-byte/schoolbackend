@@ -21,6 +21,8 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -121,14 +123,16 @@ public class AuthenticationService {
 
     private void sendValidationEmail(User user) throws MessagingException {
         var newToken = generateAndSaveActivationToken(user);
+        String encodedToken = URLEncoder.encode(newToken, StandardCharsets.UTF_8);
 
-        String finalActivationUrl = frontendBaseUrl + "/activate-account?token=" + newToken;
+
+        String finalActivationUrl = frontendBaseUrl + "/activate-account?token=" + encodedToken;
         System.out.println("Final Activation Link: " + finalActivationUrl); // ✅ Debugging
         Map<String, Object> vars = new HashMap<>();
         vars.put("user", user.getFullName());
         vars.put("username", user.getFullName());
         vars.put("confirmationUrl", finalActivationUrl);
-        vars.put("newToken", newToken);
+        vars.put("activation_code", newToken);
         vars.put("baseUrl", "https://farm-4fa35.web.app");
 
         emailService.sendEmail(

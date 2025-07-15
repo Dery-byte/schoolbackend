@@ -47,8 +47,9 @@ spring:
 application:
   mailing:
     frontend:
-      activation-url: https://school-52f23.web.app/
+      activation-url: https://school-52f23.web.app
       jwk-set-uri: http://localhost:8080/realms/postgres/protocol/openid-connect/certs
+      baseUrl: https://school-52f23.web.app
 
   security:
     jwt:
@@ -100,3 +101,6 @@ google:
     api:
       key: AIzaSyC9uCkkvOIYzV2c2SQwlCy6hGChAEIqWHw
       url: https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent
+
+
+
