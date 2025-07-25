@@ -5,6 +5,7 @@ import com.alibou.book.DTO.ResetPasswordRequest;
 import com.alibou.book.Services.MNotifyV2SmsService;
 import com.alibou.book.email.EmailService;
 import com.alibou.book.email.EmailTemplateName;
+import com.alibou.book.exception.DuplicateEmailException;
 import com.alibou.book.exception.ResetPasswordTokenAlreadyUsedException;
 import com.alibou.book.exception.ResetPasswordTokenExpiredException;
 import com.alibou.book.role.RoleRepository;
@@ -16,6 +17,7 @@ import com.alibou.book.user.UserRepository;
 import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -69,8 +71,19 @@ public class AuthenticationService {
                 .enabled(false)
                 .roles(List.of(userRole))
                 .build();
-        userRepository.save(user);
-        sendValidationEmail(user);
+
+
+        try {
+            userRepository.save(user);
+            sendValidationEmail(user);
+        } catch (DataIntegrityViolationException ex) {
+            // Customize based on your DB constraint name (update accordingly)
+            if (ex.getMessage() != null && ex.getMessage().contains("UK_nlcolwbx8ujaen5h0u2kr2bn2")) {
+                throw new DuplicateEmailException("An account with this email already exists.");
+            }
+            throw ex;
+        }
+      //  sendValidationEmail(user);
 
 
 

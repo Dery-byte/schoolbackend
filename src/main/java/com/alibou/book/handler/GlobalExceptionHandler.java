@@ -1,6 +1,8 @@
 package com.alibou.book.handler;
 
 import com.alibou.book.exception.ActivationTokenException;
+import com.alibou.book.exception.DuplicateEmailException;
+import com.alibou.book.exception.DuplicateUsernameException;
 import com.alibou.book.exception.OperationNotPermittedException;
 import jakarta.mail.MessagingException;
 import org.springframework.http.HttpStatus;
@@ -133,31 +135,75 @@ public class GlobalExceptionHandler {
 
 
 
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ExceptionResponse> handleException(Exception exp) {
-        exp.printStackTrace();
 
-        String errorMessage = exp.getMessage();
-        String userFriendlyMessage = "Internal error, please contact the admin";
 
-        // Check for duplicate email or username
-        if (errorMessage != null && errorMessage.contains("Duplicate entry")) {
-            if (errorMessage.contains("for key '_user.UK_nlcolwbx8ujaen5h0u2kr2bn2'")) {
-                userFriendlyMessage = "An account with this email already exists.";
-            } else if (errorMessage.contains("for key '_user.UK_username'")) {
-                userFriendlyMessage = "Username is already taken.";
-            }
-            // You can add more conditions for different unique keys here
-        }
 
+    @ExceptionHandler(DuplicateEmailException.class)
+    public ResponseEntity<ExceptionResponse> handleDuplicateEmail(DuplicateEmailException ex) {
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
-                .body(
-                        ExceptionResponse.builder()
-                                .businessErrorDescription(userFriendlyMessage)
-                                .error(errorMessage)
-                                .build()
-                );
+                .body(ExceptionResponse.builder()
+                        .businessErrorDescription(ex.getMessage())
+                        .error("Email conflict")
+                        .build());
     }
+
+    @ExceptionHandler(DuplicateUsernameException.class)
+    public ResponseEntity<ExceptionResponse> handleDuplicateUsername(DuplicateUsernameException ex) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ExceptionResponse.builder()
+                        .businessErrorDescription(ex.getMessage())
+                        .error("Username conflict")
+                        .build());
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//    @ExceptionHandler(Exception.class)
+//    public ResponseEntity<ExceptionResponse> handleUserExistAlready(Exception exp) {
+//        exp.printStackTrace();
+//
+//        String errorMessage = exp.getMessage();
+//
+//        System.out.print("This is the Error message "+ errorMessage);
+//        String userFriendlyMessage = "An account with this email already exists";
+//
+//        // Check for duplicate email or username
+//        if (errorMessage != null && errorMessage.contains("[Cannot insert duplicate key")) {
+//            if (errorMessage.contains("for key '_user.UK_nlcolwbx8ujaen5h0u2kr2bn2'")) {
+//                userFriendlyMessage = "An account with this email already exists.";
+//            } else if (errorMessage.contains("for key '_user.UK_username'")) {
+//                userFriendlyMessage = "Username is already taken.";
+//            }
+//            // You can add more conditions for different unique keys here
+//        }
+//
+//        return ResponseEntity
+//                .status(HttpStatus.BAD_REQUEST)
+//                .body(
+//                        ExceptionResponse.builder()
+//                                .businessErrorDescription(userFriendlyMessage)
+//                                .error(errorMessage)
+//                                .build()
+//                );
+//    }
 
 }
