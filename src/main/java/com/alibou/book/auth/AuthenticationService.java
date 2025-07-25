@@ -2,6 +2,7 @@ package com.alibou.book.auth;
 
 import com.alibou.book.DTO.ForgottenPasswordRequest;
 import com.alibou.book.DTO.ResetPasswordRequest;
+import com.alibou.book.Services.MNotifyV2SmsService;
 import com.alibou.book.email.EmailService;
 import com.alibou.book.email.EmailTemplateName;
 import com.alibou.book.exception.ResetPasswordTokenAlreadyUsedException;
@@ -25,6 +26,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,7 +41,7 @@ public class AuthenticationService {
     private final RoleRepository roleRepository;
     private final EmailService emailService;
     private final TokenRepository tokenRepository;
-
+    private final MNotifyV2SmsService mNotifyV2SmsService;
 
 
     @Value("${application.mailing.frontend.activation-url}")
@@ -62,12 +64,16 @@ public class AuthenticationService {
                 .lastname(request.getLastname())
                 .username(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
+                .phoneNumber(request.getPhoneNumber().get(0))
                 .accountLocked(false)
                 .enabled(false)
                 .roles(List.of(userRole))
                 .build();
         userRepository.save(user);
         sendValidationEmail(user);
+
+
+
     }
 
     public AuthenticationResponse authenticate(AuthenticationRequest request) throws MessagingException {
@@ -143,7 +149,21 @@ public class AuthenticationService {
                 vars,
                 "Account activation"
                 );
+
+
+//        SEND SMS
+        System.out.println(STR."This is the recipient \{user.getPhoneNumber()}");
+//        String message = "Hello " + user.getFirstname() + ", your OTP is: " + newToken;
+        String smsMessage = "Hello " + user.getFullName() +
+                ", your activation code is: " + newToken +
+                ". It expires in 15 minutes.";
+        mNotifyV2SmsService.sendSms(Collections.singletonList(user.getPhoneNumber()),smsMessage);
     }
+
+
+
+
+
 
     private String generateActivationCode(int length) {
         String characters = "0123456789";

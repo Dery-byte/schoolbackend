@@ -3,6 +3,7 @@ package com.alibou.book.handler;
 import com.alibou.book.exception.ActivationTokenException;
 import com.alibou.book.exception.OperationNotPermittedException;
 import jakarta.mail.MessagingException;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
@@ -117,16 +118,46 @@ public class GlobalExceptionHandler {
                 );
     }
 
+//    @ExceptionHandler(Exception.class)
+//    public ResponseEntity<ExceptionResponse> handleException(Exception exp) {
+//        exp.printStackTrace();
+//        return ResponseEntity
+//                .status(INTERNAL_SERVER_ERROR)
+//                .body(
+//                        ExceptionResponse.builder()
+//                                .businessErrorDescription("Internal error, please contact the admin")
+//                                .error(exp.getMessage())
+//                                .build()
+//                );
+//    }
+
+
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ExceptionResponse> handleException(Exception exp) {
         exp.printStackTrace();
+
+        String errorMessage = exp.getMessage();
+        String userFriendlyMessage = "Internal error, please contact the admin";
+
+        // Check for duplicate email or username
+        if (errorMessage != null && errorMessage.contains("Duplicate entry")) {
+            if (errorMessage.contains("for key '_user.UK_nlcolwbx8ujaen5h0u2kr2bn2'")) {
+                userFriendlyMessage = "An account with this email already exists.";
+            } else if (errorMessage.contains("for key '_user.UK_username'")) {
+                userFriendlyMessage = "Username is already taken.";
+            }
+            // You can add more conditions for different unique keys here
+        }
+
         return ResponseEntity
-                .status(INTERNAL_SERVER_ERROR)
+                .status(HttpStatus.BAD_REQUEST)
                 .body(
                         ExceptionResponse.builder()
-                                .businessErrorDescription("Internal error, please contact the admin")
-                                .error(exp.getMessage())
+                                .businessErrorDescription(userFriendlyMessage)
+                                .error(errorMessage)
                                 .build()
                 );
     }
+
 }
