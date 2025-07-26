@@ -23,6 +23,9 @@ public class ExamCheckRecord {
 
     private Instant createdAt;
     private Instant lastUpdated;
+    private int checkLimit = 0;
+
+
 
 //    @Embedded
 //    private ExamDetails examDetails;

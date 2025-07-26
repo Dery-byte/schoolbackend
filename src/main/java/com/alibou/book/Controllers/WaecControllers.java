@@ -17,8 +17,9 @@ public class WaecControllers {
     }
     // VERIFY RETURNS THE DATA FROM THE DATABASE IF EXIST AND FETCH FROM THE WAEC API OTHERWISE
     @PostMapping("/verify")
-    public ResponseEntity<?> verifyWaecResult(@RequestBody WaecResultsRequest request) {
-        return waecApiService.verifyResult(request);
+    public ResponseEntity<?> verifyWaecResult(@RequestBody WaecResultsRequest request,
+                                              @RequestParam(required = false) String recordId) {
+        return waecApiService.verifyResult(request, recordId);
     }
 
 

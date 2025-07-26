@@ -14,8 +14,6 @@ public class EligibilityRecordService {
 
     private final EligibilityRecordRepository repository;
     private final UserDetailsService userDetailsService;
-
-
     public List<EligibilityRecord> getAllRecords() {
         return repository.findAll();
     }

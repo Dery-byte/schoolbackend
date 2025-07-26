@@ -61,8 +61,19 @@ public class WaecApiService {
 
 
     // VERIFY RETURNS THE DATA FROM THE DATABASE IF EXIST AND FETCH FROM THE WAEC API OTHERWISE
+
+
+
     @Transactional  // Add this annotation
-    public ResponseEntity<?> verifyResult(WaecResultsRequest request) {
+    public ResponseEntity<?> verifyResult(WaecResultsRequest request, String recordId) {
+//        String externalRef = request.getReqref();
+
+        System.out.println(recordId);
+
+        // First, find or create an ExamCheckRecord (but don't increment yet)
+        //ExamCheckRecord checkRecord = examCheckRecordRepository.findByUserId(request.getUserId());
+        //Optional<ExamCheckRecord> checkRecord  = examCheckRecordRepository.findByExternalRef(recordId);
+        Optional<ExamCheckRecord> checkRecord = examCheckRecordRepository.findById(recordId);
 
         Optional<WaecCandidateEntity> existing = waecCandidateRepository.findFirstByCindexAndExamyearAndExamtype(
                 request.getCindex(), request.getExamyear(), Long.valueOf((request.getExamtype()))
@@ -71,31 +82,22 @@ public class WaecApiService {
         if (existing.isPresent()) {
             System.out.println("Results found in database ");
             WaecCandidateEntity candidateEntity = existing.get();
+
+
+            // UDATE CHECK LIMIT
+            checkRecord.ifPresent(record -> {
+                record.setCheckLimit(record.getCheckLimit() + 1); // Increment
+                record.setLastUpdated(Instant.now());
+                //record.setCheckStatus("completed");
+                examCheckRecordRepository.save(record);
+            });
+
+
+
             WaecCandidateDTO responseDTO = mapToDTO(candidateEntity);
             return ResponseEntity.ok(responseDTO);
         }
 
-
-
-
-//        if (existing.isPresent()) {
-//            System.out.println("✅ Result found in database. Skipping WAEC API call.");
-//
-//            // Call eligibility checker with cached result
-////            List<UniversityEligibilityDTO> eligibility = checkEligibility(existing.get(), "PRIVATE");
-////
-////            List<UniversityEligibilityDTO> eligibility = checkEligibility(existing.get(), null);
-////
-////
-////            System.out.println("RESPONSE FROM DATABASE: " + eligibility);
-//
-//            return ResponseEntity.ok(Map.of(
-////                    "source", "DATABASE",
-//                    "candidate", existing.get().getCname(),
-//                    "indexNumber", existing.get().getCindex(),
-//                    "eligibility", eligibility
-//            ));
-//        }
 
         String reqRef = UUID.randomUUID().toString().replace("-", "").substring(0, 24);
         request.setReqref(reqRef);
@@ -103,10 +105,8 @@ public class WaecApiService {
         try {
             System.out.println("Request Body (JSON): " + objectMapper.writeValueAsString(request));
             HttpEntity<WaecResultsRequest> entity = new HttpEntity<>(request);
-
             ResponseEntity<String> response =
                     waecApiRestTemplate.postForEntity(apiUrl, entity, String.class);
-
             System.out.println("WAEC API Response: " + response.getStatusCode());
             System.out.println("Body: " + response.getBody());
 
@@ -159,9 +159,25 @@ public class WaecApiService {
                 // Return the candidate entity (from the API) as the response
 //                WaecCandidateDTO responseDTO = mapToDTO(candidateEntity);
 //                return ResponseEntity.ok(responseDTO);
+
+                // UDATE CHECK LIMIT
+                checkRecord.ifPresent(record -> {
+                    record.setCheckLimit(record.getCheckLimit() + 1); // Increment
+                    record.setLastUpdated(Instant.now());
+                    //record.setCheckStatus("completed");
+                    examCheckRecordRepository.save(record);
+                });
+
                 return ResponseEntity.ok(candidateEntity);
 
             }
+
+
+            // API call failed (don't increment checkLimit)
+            checkRecord.ifPresent(record -> {
+                //record.setCheckStatus("failed");
+                examCheckRecordRepository.save(record);
+            });
 
             return response;
 
@@ -177,17 +193,7 @@ public class WaecApiService {
         }
     }
 
-//    public ResponseEntity<WaecCandidateEntity> getCandidateWithResultsFromDb(@RequestBody CandidateSearchRequest request) {
-//        return waecCandidateRepository.findByCindexAndExamyearAndExamtype(
-//                request.getCindex(), request.getExamyear(), Long.valueOf(request.getExamtype())
-//        ).map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
-//    }
 
-//    private final Map<String, Integer> gradeScale = Map.ofEntries(
-//            Map.entry("A1", 1), Map.entry("B2", 2), Map.entry("B3", 3),
-//            Map.entry("C4", 4), Map.entry("C5", 5), Map.entry("C6", 6),
-//            Map.entry("D7", 7), Map.entry("E8", 8), Map.entry("F9", 9)
-//    );
 
 
 

@@ -14,17 +14,16 @@ public class WaecResultService {
 
     @Autowired
     private WaecResultRepository waecResultRepository;
-
     @Autowired
     private UserRepository userRepository;
 
     /**
      * Saves WAEC results for a user.
      */
+
     public WaecResult saveWaecResult(String username, WaecResult waecResult) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-
 //        waecResult.setUser(user);
         return waecResultRepository.save(waecResult);
     }
