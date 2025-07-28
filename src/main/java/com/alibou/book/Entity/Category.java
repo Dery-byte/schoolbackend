@@ -21,6 +21,8 @@ public class Category {
     @Column(nullable = false, unique = true)
     private String name;
 
+    private String description;
+
     @ManyToMany(mappedBy = "categories")
     @JsonIgnore
     private Set<Program> programs = new HashSet<>();

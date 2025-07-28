@@ -26,8 +26,8 @@ public class CategoryService {
 
         Category category = Category.builder()
                 .name(request.getName())
+                .description(request.getDescription())
                 .build();
-
         return categoryRepository.save(category);
     }
 
