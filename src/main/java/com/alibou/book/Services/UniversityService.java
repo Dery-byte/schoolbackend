@@ -25,8 +25,20 @@ public class UniversityService {
     public List<University> getUniversitiesByType(UniversityType type) {
         return universityRepository.findByType(type);
     }
+
+
     public University getUniversityById(Long id) {
         return universityRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("University not found"));
     }
+
+
+    public University deleteUniversityById(Long id) {
+        University university = universityRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("University not found"));
+        universityRepository.delete(university);
+        return university;
+    }
+
+
 }

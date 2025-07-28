@@ -2,7 +2,11 @@ package com.alibou.book.Controllers;
 
 import com.alibou.book.Entity.University;
 import com.alibou.book.Entity.UniversityType;
+import com.alibou.book.Repositories.UniversityRepository;
 import com.alibou.book.Services.UniversityService;
+import com.alibou.book.exception.ResourceNotFoundException;
+import jakarta.transaction.Transactional;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,6 +20,9 @@ public class UniversityController {
 
     @Autowired
     private UniversityService universityService;
+    @Autowired
+    private UniversityRepository universityRepository;
+
 
 
     @PostMapping("/add/university")
@@ -34,9 +41,35 @@ public class UniversityController {
         return ResponseEntity.ok(universityService.getUniversitiesByType(type));
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/getUniversityById/{id}")
     public ResponseEntity<University> getUniversityById(@PathVariable Long id) {
         return ResponseEntity.ok(universityService.getUniversityById(id));
+    }
+
+
+    @DeleteMapping("/deleteUniversityById/{id}")
+    public ResponseEntity<University> deleteUniversityById(@PathVariable Long id) {
+        University deletedUniversity = universityService.deleteUniversityById(id);
+        return ResponseEntity.ok(deletedUniversity);
+    }
+
+
+
+    @PutMapping("/updateUniverity")
+    @Transactional
+    public ResponseEntity<University> updateUniversity(
+            @Valid @RequestBody com.alibou.book.dto.UpdateUniversityDTO updateDTO) {
+        University university = universityRepository.findById(updateDTO.getId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "University not found with id: " + updateDTO.getId()));
+
+        // Update fields
+        university.setName(updateDTO.getName());
+        university.setLocation(updateDTO.getLocation());
+        university.setType(updateDTO.getType());
+
+        University updatedUniversity = universityRepository.save(university);
+        return ResponseEntity.ok(updatedUniversity);
     }
 
 
