@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: jdbc:sqlserver://schooldbservers.database.windows.net:1433;database=school
+    url: jdbc:sqlserver://schooldbsjjj.database.windows.net:1433;database=school
     username: Mudita
     password: EMM@RESCUe1
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
