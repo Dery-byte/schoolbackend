@@ -2,7 +2,7 @@ spring:
   datasource:
     url: jdbc:sqlserver://schooldbsjjj.database.windows.net:1433;database=schooldata
     username: Mudita
-    password: EMM@RESCUe1
+    password: EMM@RESCUe12
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
   jpa:
     hibernate:
