@@ -4,7 +4,6 @@ spring:
     username: Mudita
     password: EMM@RESCUe1
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
-
   jpa:
     hibernate:
       ddl-auto: update
