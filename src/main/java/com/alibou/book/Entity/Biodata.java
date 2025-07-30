@@ -33,6 +33,9 @@ public class Biodata {
     @Size(min = 2, max = 50, message = "Last name must be between 2 and 50 characters")
     private String lastName;
 
+    private String middleName;
+    private  Gender gender;
+
     @NotBlank(message = "Email is required")
     @Email(message = "Email should be valid")
     private String email;
@@ -41,6 +44,7 @@ public class Biodata {
     @Pattern(regexp = "^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\\s\\./0-9]*$",
             message = "Phone number should be valid")
     private String phoneNumber;
+
 
     @NotBlank(message = "Address is required")
     @Size(max = 200, message = "Address cannot exceed 200 characters")

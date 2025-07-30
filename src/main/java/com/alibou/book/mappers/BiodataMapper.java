@@ -16,6 +16,8 @@ public class BiodataMapper {
                 biodata.getEmail(),
                 biodata.getPhoneNumber(),
                 biodata.getAddress(),
+                biodata.getMiddleName(),
+                biodata.getGender(),
                 biodata.getDob(),
                 biodata.getRecord() != null ? biodata.getRecord().getId() : null
         );

@@ -20,7 +20,7 @@ import java.util.List;
 public class BiodataService {
 
     private final BiodataRepository biodataRepository;
-    private static final int MINIMUM_AGE = 18;
+    private static final int MINIMUM_AGE = 6;
 
     // ========== PUBLIC CRUD METHODS ========== //
 
@@ -126,6 +126,8 @@ public class BiodataService {
         if (source.getPhoneNumber() != null) target.setPhoneNumber(source.getPhoneNumber());
         if (source.getAddress() != null) target.setAddress(source.getAddress());
         if (source.getDob() != null) target.setDob(source.getDob());
+        if(source.getMiddleName() !=null) target.setMiddleName(source.getMiddleName());
+        if(source.getGender() !=null) target.setGender(source.getGender());
 
         // Add record update if needed
         if (source.getRecord() != null) target.setRecord(source.getRecord());
