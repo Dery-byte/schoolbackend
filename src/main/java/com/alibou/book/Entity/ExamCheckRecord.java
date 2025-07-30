@@ -1,4 +1,6 @@
 package com.alibou.book.Entity;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.Instant;
@@ -37,6 +39,7 @@ private String externalRef;  // Matches PaymentStatuss.externalRef
 
 
     @OneToOne(mappedBy = "record", cascade = CascadeType.ALL)
+    @JsonIgnore // This will be serialized
     private Biodata biodata;  // Bidirectional reference
 
 

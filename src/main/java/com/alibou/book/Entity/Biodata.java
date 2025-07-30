@@ -1,6 +1,8 @@
 package com.alibou.book.Entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
@@ -49,6 +51,8 @@ public class Biodata {
 
     @OneToOne
     @JoinColumn(name = "record_id")  // Foreign key in Biodata table
-    @JsonIgnore
+//    @JsonIgnore
+    //@JsonManagedReference // This will be serialized
+    @JsonIgnoreProperties
     private ExamCheckRecord record;  // Reference to the linked record
 }
