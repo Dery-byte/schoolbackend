@@ -34,4 +34,10 @@ private String externalRef;  // Matches PaymentStatuss.externalRef
 
     @OneToOne(cascade = CascadeType.ALL)
     private WaecCandidateEntity waecCandidateEntity;
+
+
+    @OneToOne(mappedBy = "record", cascade = CascadeType.ALL)
+    private Biodata biodata;  // Bidirectional reference
+
+
 }

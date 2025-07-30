@@ -1,7 +1,6 @@
 spring:
   profiles:
     active: prod
-  servlet:
     multipart:
       max-file-size: 50MB
 springdoc:
