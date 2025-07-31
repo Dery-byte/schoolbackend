@@ -1,10 +1,12 @@
 package com.alibou.book.Controllers;
 
 
+import com.alibou.book.DTO.ExamCheckRecordDTO;
 import com.alibou.book.Entity.ExamCheckRecord;
 import com.alibou.book.Entity.WaecCandidateEntity;
 import com.alibou.book.Services.ExamCheckRecordService;
 import com.alibou.book.user.User;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -65,16 +67,30 @@ public class ExamCheckRecordController {
 
 
     // Get all records for a user
+//    @GetMapping("/RecordsByUserId")
+//    public ResponseEntity<List<ExamCheckRecord>> getByUser(Principal principal) {
+//        if (principal == null) {
+//            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+//        }
+//        // Load user and validate
+//        User user = (User) userDetailsService.loadUserByUsername(principal.getName());
+//        Long UserId = Long.valueOf(user.getId());
+////        return examCheckRecordRepository.findAllByUserId(String.valueOf(UserId));
+//        return ResponseEntity.ok(examCheckRecordService.getAllByUserId(String.valueOf(UserId)));
+//    }
+
+
     @GetMapping("/RecordsByUserId")
-    public ResponseEntity<List<ExamCheckRecord>> getByUser(Principal principal) {
+    public ResponseEntity<List<ExamCheckRecordDTO>> getByUser(Principal principal) {
         if (principal == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        // Load user and validate
         User user = (User) userDetailsService.loadUserByUsername(principal.getName());
-        Long UserId = Long.valueOf(user.getId());
-//        return examCheckRecordRepository.findAllByUserId(String.valueOf(UserId));
-        return ResponseEntity.ok(examCheckRecordService.getAllByUserId(String.valueOf(UserId)));
+        List<ExamCheckRecord> records = examCheckRecordService.getAllByUserId(String.valueOf(user.getId()));
+        List<ExamCheckRecordDTO> dtos = records.stream()
+                .map(ExamCheckRecordDTO::fromEntity)
+                .toList();
+        return ResponseEntity.ok(dtos);
     }
 
     // Get a specific record

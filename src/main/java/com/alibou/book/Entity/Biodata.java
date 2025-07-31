@@ -55,8 +55,6 @@ public class Biodata {
 
     @OneToOne
     @JoinColumn(name = "record_id")  // Foreign key in Biodata table
-//    @JsonIgnore
-    //@JsonManagedReference // This will be serialized
-    @JsonIgnoreProperties
+//    @JsonManagedReference  // This side will be serialized
     private ExamCheckRecord record;  // Reference to the linked record
 }

@@ -1,6 +1,8 @@
 package com.alibou.book.Entity;
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.Instant;
@@ -22,7 +24,6 @@ public class ExamCheckRecord {
     @Enumerated(EnumType.STRING)
     private PaymentStatus paymentStatus;     // e.g., "paid", "pending"
     private String checkStatus;       // e.g., "completed", "not_started"
-
     private Instant createdAt;
     private Instant lastUpdated;
     private int checkLimit = 0;
@@ -39,7 +40,7 @@ private String externalRef;  // Matches PaymentStatuss.externalRef
 
 
     @OneToOne(mappedBy = "record", cascade = CascadeType.ALL)
-    @JsonIgnore // This will be serialized
+//    @JsonBackReference  // This side won't be serialized
     private Biodata biodata;  // Bidirectional reference
 
 

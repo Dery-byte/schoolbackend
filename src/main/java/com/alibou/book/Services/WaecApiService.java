@@ -83,7 +83,6 @@ public class WaecApiService {
             System.out.println("Results found in database ");
             WaecCandidateEntity candidateEntity = existing.get();
 
-
             // UDATE CHECK LIMIT
             checkRecord.ifPresent(record -> {
                 record.setCheckLimit(record.getCheckLimit() + 1); // Increment
@@ -164,12 +163,12 @@ public class WaecApiService {
                 checkRecord.ifPresent(record -> {
                     record.setCheckLimit(record.getCheckLimit() + 1); // Increment
                     record.setLastUpdated(Instant.now());
-                    //record.setCheckStatus("completed");
+                    System.out.println(record.getCheckLimit());
+                    System.out.println("What is  happeneing here");
                     examCheckRecordRepository.save(record);
+
                 });
-
                 return ResponseEntity.ok(candidateEntity);
-
             }
 
 
