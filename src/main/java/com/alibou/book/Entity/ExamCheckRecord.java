@@ -40,7 +40,7 @@ private String externalRef;  // Matches PaymentStatuss.externalRef
 
 
     @OneToOne(mappedBy = "record", cascade = CascadeType.ALL)
-//    @JsonBackReference  // This side won't be serialized
+    @JsonBackReference  // This side won't be serialized
     private Biodata biodata;  // Bidirectional reference
 
 
