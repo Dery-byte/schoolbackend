@@ -34,4 +34,10 @@ public class EligibilityRecord {
     private List<UniversityEligibility> universities;
 
 
+    @ElementCollection
+    @CollectionTable(name = "eligibility_record_categories", joinColumns = @JoinColumn(name = "eligibility_record_id"))
+    @Column(name = "category_name")
+    private List<String> selectedCategories;
+
+
 }

@@ -6,6 +6,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 @Entity
@@ -36,4 +38,13 @@ public class EligibleProgram {
     @JoinColumn(name = "university_eligibility_id")
     @JsonBackReference
     private UniversityEligibility universityEligibility;
+
+
+
+
+
+    @ElementCollection
+    @CollectionTable(name = "eligible_program_categories", joinColumns = @JoinColumn(name = "eligible_program_id"))
+    @Column(name = "category")
+    private List<String> categories = new ArrayList<>();
 }

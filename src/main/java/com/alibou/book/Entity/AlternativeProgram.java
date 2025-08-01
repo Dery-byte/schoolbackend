@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -37,4 +38,10 @@ public class AlternativeProgram {
     @JoinColumn(name = "university_eligibility_id")
     @JsonBackReference
     private UniversityEligibility universityEligibility;
+
+
+    @ElementCollection
+    @CollectionTable(name = "alternative_program_categories", joinColumns = @JoinColumn(name = "alternative_program_id"))
+    @Column(name = "category")
+    private List<String> categories = new ArrayList<>();
 }

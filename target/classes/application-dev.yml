@@ -102,8 +102,13 @@ price:
 
 #GOOGLE GEMINI PROPERTIES
 
+#google:
+#  gemini:
+#    api:
+#      key: AIzaSyC9uCkkvOIYzV2c2SQwlCy6hGChAEIqWHw
+#      url: https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent
 google:
   gemini:
     api:
-      key: AIzaSyC9uCkkvOIYzV2c2SQwlCy6hGChAEIqWHw
+      key: AIzaSyBATESodRwp8JAOyXbIht8OC7Ve8CTRG6s
       url: https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent
