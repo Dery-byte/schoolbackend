@@ -17,8 +17,12 @@ public class EligibilityRequest {
     private List<ResultDetail> resultDetails;
 
     private String universityType;
+    private String checkRecordId;
+
 
     @NotNull(message = "At least one category must be selected")
     @Size(min = 1, message = "At least one category must be selected")
     private List<Long> categoryIds;
+
+
 }

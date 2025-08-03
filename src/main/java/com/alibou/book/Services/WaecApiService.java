@@ -4,6 +4,7 @@ import com.alibou.book.DTO.*;
 import com.alibou.book.Entity.*;
 import com.alibou.book.Repositories.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -65,9 +66,6 @@ public class WaecApiService {
 
         System.out.println(recordId);
 
-        // First, find or create an ExamCheckRecord (but don't increment yet)
-        //ExamCheckRecord checkRecord = examCheckRecordRepository.findByUserId(request.getUserId());
-        //Optional<ExamCheckRecord> checkRecord  = examCheckRecordRepository.findByExternalRef(recordId);
         Optional<ExamCheckRecord> checkRecord = examCheckRecordRepository.findById(recordId);
 
         Optional<WaecCandidateEntity> existing = waecCandidateRepository.findFirstByCindexAndExamyearAndExamtype(
@@ -82,6 +80,9 @@ public class WaecApiService {
             checkRecord.ifPresent(record -> {
                 record.setCheckLimit(record.getCheckLimit() + 1); // Increment
                 record.setLastUpdated(Instant.now());
+                record.setCandidateName(candidateEntity.getCname());
+//                record.setWaecCandidateEntity(candidateEntity);
+                System.out.println(candidateEntity);
                 //record.setCheckStatus("completed");
                 examCheckRecordRepository.save(record);
             });
@@ -157,6 +158,10 @@ public class WaecApiService {
                 checkRecord.ifPresent(record -> {
                     record.setCheckLimit(record.getCheckLimit() + 1); // Increment
                     record.setLastUpdated(Instant.now());
+                    record.setCandidateName(candidateEntity.getCname());
+//                    record.setWaecCandidateEntity(candidateEntity);
+
+                    System.out.println(candidateEntity);
                     System.out.println(record.getCheckLimit());
                     System.out.println("What is  happeneing here");
                     examCheckRecordRepository.save(record);
@@ -1081,6 +1086,7 @@ public class WaecApiService {
             WaecCandidateEntity candidate,
             String universityType,
             String userId,
+            String checkExamRecordId,
             List<Long> userSelectedCategoryIds) {
 
         // Validate input
@@ -1210,8 +1216,8 @@ public class WaecApiService {
         }
 
         // Generate AI recommendations for all programs
-        Map<Program, AIRecommendation> aiRecommendations = aiRecommendationService
-                .generateRecommendations(eligibleProgramsMap, alternativeProgramsMap, candidate);
+//        Map<Program, AIRecommendation> aiRecommendations = aiRecommendationService
+//                .generateRecommendations(eligibleProgramsMap, alternativeProgramsMap, candidate);
 
         // Filter universities by type
         Set<University> filteredUniversities = new HashSet<>();
@@ -1224,10 +1230,19 @@ public class WaecApiService {
                     .collect(Collectors.toSet());
         }
 
+        Optional<ExamCheckRecord> examCheckRecord = examCheckRecordRepository.findById(checkExamRecordId);
+
+// Get the record or throw an exception if not found
+        ExamCheckRecord recordToSet = examCheckRecord.orElseThrow(() ->
+                new EntityNotFoundException("ExamCheckRecord not found with id: " + checkExamRecordId));
+
+// Now you can safely set the record
+
         // Create eligibility record with categories
         EligibilityRecord record = new EligibilityRecord();
         record.setId(UUID.randomUUID().toString());
         record.setUserId(userId);
+        record.setExamCheckRecord(recordToSet);
         record.setCreatedAt(LocalDateTime.now(ZoneId.of("Africa/Accra")));
         record.setSelectedCategories(selectedCategories.stream()
                 .map(Category::getName)
@@ -1274,7 +1289,7 @@ public class WaecApiService {
                         ap.setPercentage(percentageMap.get(program));
                         ap.setExplanations(programExplanations.get(program));
                         ap.setCategories(new ArrayList<>(programCategoriesMap.get(program)));
-                        ap.setAiRecommendation(aiRecommendations.get(program));
+//                        ap.setAiRecommendation(aiRecommendations.get(program));
                         ap.setUniversityEligibility(universityEligibility);
                         return ap;
                     })

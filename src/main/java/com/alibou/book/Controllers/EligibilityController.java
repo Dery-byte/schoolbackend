@@ -84,6 +84,7 @@ public class EligibilityController {
                 candidate,
                 request.getUniversityType(),
                 String.valueOf(user.getId()),
+                request.getCheckRecordId(),
                 request.getCategoryIds()
         );
 
