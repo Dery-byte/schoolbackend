@@ -1,11 +1,14 @@
 package com.alibou.book.auth;
 
 import com.alibou.book.DTO.ForgottenPasswordRequest;
+import com.alibou.book.DTO.Projections.UserSummaryDTO;
 import com.alibou.book.DTO.ResetPasswordRequest;
+import com.alibou.book.user.User;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.mail.MessagingException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -64,5 +67,22 @@ public class AuthenticationController {
 
 
 
+    @GetMapping("/latestUsersSummary")
+    public ResponseEntity<Page<UserSummaryDTO>> getLatestUsersSummary(
+            @RequestParam(defaultValue = "6") int count) {
+        return ResponseEntity.ok(service.getLatestUsersSummary(count));
+    }
 
+    // Get latest X non-admin users
+    @GetMapping("/latest/non-admins")
+    public ResponseEntity<Page<User>> getLatestNonAdminUsers(
+            @RequestParam(defaultValue = "10") int count) {
+        return ResponseEntity.ok(service.getLatestNonAdminUsers(count));
+    }
+
+    // Returns just the count number
+    @GetMapping("/count")
+    public long getNonAdminCount() {
+        return service.countNonAdminUsers();
+    }
 }

@@ -140,7 +140,10 @@ public class MoolrePaymentService {
             if (recordOpt.isPresent()) {
                 ExamCheckRecord record = recordOpt.get();
                 if (record.getPaymentStatus() == PaymentStatus.PENDING &&
-                        record.getUserId().equals(String.valueOf(user.getId()))) {
+                        record.getUser().getId().equals(user.getId())
+//                        record.getUserId().equals(String.valueOf(user.getId()))
+
+                ) {
 
                     // Generate new reference only when updating existing record
                     String externalRef = generateReference();
@@ -155,7 +158,8 @@ public class MoolrePaymentService {
         // Generate new reference for new record
         String externalRef = generateReference();
         ExamCheckRecord newRecord = new ExamCheckRecord();
-        newRecord.setUserId(String.valueOf(user.getId()));
+        newRecord.setUser(user);
+//        newRecord.setUserId(String.valueOf(user.getId()));
         newRecord.setExternalRef(externalRef);
         newRecord.setPaymentStatus(PaymentStatus.PENDING);
         examCheckRecordRepository.save(newRecord);
@@ -167,7 +171,8 @@ public class MoolrePaymentService {
      */
     private ExamCheckRecord createNewExamCheckRecord(User user, String externalRef) {
         ExamCheckRecord record = new ExamCheckRecord();
-        record.setUserId(String.valueOf(user.getId()));
+        record.setUser(user);
+//        record.setUserId(String.valueOf(user.getId()));
         record.setExternalRef(externalRef);
         record.setPaymentStatus(PaymentStatus.PENDING);
         record.setCreatedAt(Instant.now());
@@ -420,6 +425,14 @@ public class MoolrePaymentService {
         paymentStatus.setExternalRef(data.getExternalref());
         paymentStatus.setThirdPartyRef(data.getThirdpartyref());
         paymentStatus.setTimestamp(data.getTs());
+
+        Optional<ExamCheckRecord> optionalOrder = examCheckRecordRepository.findByExternalRef(data.getExternalref());
+        ExamCheckRecord record = optionalOrder.orElseThrow(() ->
+                new IllegalStateException("No order found for externalRef: " + data.getExternalref())
+        );
+
+        paymentStatus.setUser(record.getUser());
+
         return paymentStatus;
     }
 

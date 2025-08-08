@@ -1,4 +1,5 @@
 package com.alibou.book.Entity;
+import com.alibou.book.user.User;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
@@ -18,7 +19,7 @@ public class ExamCheckRecord {
     @GeneratedValue(strategy = GenerationType.UUID) // Java 17+ UUID generation
     private String id;
 
-    private String userId;
+//    private String userId;
 
     private String candidateName;
     @Enumerated(EnumType.STRING)
@@ -42,6 +43,12 @@ private String externalRef;  // Matches PaymentStatuss.externalRef
     @OneToOne(mappedBy = "record", cascade = CascadeType.ALL)
     @JsonBackReference  // This side won't be serialized
     private Biodata biodata;  // Bidirectional reference
+
+
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
 
 
 }

@@ -2,8 +2,12 @@ package com.alibou.book.Controllers;
 
 
 import com.alibou.book.DTO.ExamCheckRecordDTO;
+import com.alibou.book.DTO.ExamRecordStatsDTO;
+import com.alibou.book.DTO.Projections.ExamCheckMonthlySummary;
 import com.alibou.book.Entity.ExamCheckRecord;
+import com.alibou.book.Entity.PaymentStatus;
 import com.alibou.book.Entity.WaecCandidateEntity;
+import com.alibou.book.Repositories.ExamCheckRecordRepository;
 import com.alibou.book.Services.ExamCheckRecordService;
 import com.alibou.book.user.User;
 import jakarta.transaction.Transactional;
@@ -13,16 +17,20 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.security.Principal;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/auth/records")
+@CrossOrigin(origins="*")
 @RequiredArgsConstructor
 public class ExamCheckRecordController {
     private final ExamCheckRecordService examCheckRecordService;
     private final UserDetailsService userDetailsService;
+    private final ExamCheckRecordRepository examCheckRecordRepository;
 
 
     // Step 1: Create initial record (minimal data)
@@ -52,6 +60,12 @@ public class ExamCheckRecordController {
         return ResponseEntity.ok(updated);
     }
 
+    @GetMapping("/monthlyStats")
+    public ResponseEntity<List<ExamCheckMonthlySummary>> getMonthlyStats(
+            @RequestParam int year) {
+        List<ExamCheckMonthlySummary> result = examCheckRecordService.getMonthlyStats(year);
+        return ResponseEntity.ok(result);
+    }
 
 
 
@@ -86,7 +100,7 @@ public class ExamCheckRecordController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         User user = (User) userDetailsService.loadUserByUsername(principal.getName());
-        List<ExamCheckRecord> records = examCheckRecordService.getAllByUserId(String.valueOf(user.getId()));
+        List<ExamCheckRecord> records = examCheckRecordService.getAllByUserId(user.getId());
         List<ExamCheckRecordDTO> dtos = records.stream()
                 .map(ExamCheckRecordDTO::fromEntity)
                 .toList();
@@ -112,6 +126,32 @@ public class ExamCheckRecordController {
     public ResponseEntity<Void> delete(@PathVariable String id) {
         examCheckRecordService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+
+    @GetMapping("/stats")
+    public ResponseEntity<ExamRecordStatsDTO> getExamRecordStats() {
+        return ResponseEntity.ok(
+                ExamRecordStatsDTO.builder()
+                        .totalRecords(examCheckRecordService.getTotalRecords())
+                        .paidRecords(examCheckRecordService.getPaidRecords())
+                        .pendingRecords(examCheckRecordService.getPendingRecords())
+                        .build()
+        );
+    }
+
+    @GetMapping("/stats/filtered")
+    public ResponseEntity<ExamRecordStatsDTO> getFilteredStats(
+            @RequestParam(required = false) Instant startDate,
+            @RequestParam(required = false) Instant endDate) {
+
+        return ResponseEntity.ok(
+                ExamRecordStatsDTO.builder()
+                        .totalRecords(examCheckRecordService.getTotalRecordsBetweenDates(startDate, endDate))
+                        .paidRecords(examCheckRecordService.getPaidRecordsBetweenDates(startDate, endDate))
+                        .pendingRecords(examCheckRecordService.getPendingRecordsBetweenDates(startDate, endDate))
+                        .build()
+        );
     }
 
 }

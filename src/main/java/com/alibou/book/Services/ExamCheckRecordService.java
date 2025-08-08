@@ -1,6 +1,7 @@
 package com.alibou.book.Services;
 
 
+import com.alibou.book.DTO.Projections.ExamCheckMonthlySummary;
 import com.alibou.book.Entity.ExamCheckRecord;
 import com.alibou.book.Entity.PaymentStatus;
 import com.alibou.book.Entity.WaecCandidateEntity;
@@ -11,11 +12,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.security.Principal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -36,7 +39,8 @@ public class ExamCheckRecordService {
 //        request.setExternalref(externalRef);
         User user = (User) userDetailsService.loadUserByUsername(principal.getName());
         Long UserId = Long.valueOf(user.getId());
-        record.setUserId(UserId.toString());
+        record.setUser(user);
+//        record.setUserId(UserId.toString());
         record.setCreatedAt(Instant.now());
         record.setLastUpdated(Instant.now());
         record.setExternalRef(externalRef);
@@ -68,7 +72,16 @@ public class ExamCheckRecordService {
 
 
 
+    public List<ExamCheckMonthlySummary> getMonthlyStats(int year) {
+        List<Object[]> results = examCheckRecordRepository.getMonthlyExamCheckRecords(year);
 
+        return results.stream()
+                .map(result -> new ExamCheckMonthlySummary(
+                        ((Number) result[0]).intValue(),  // month
+                        ((Number) result[1]).longValue()  // totalRecords
+                ))
+                .collect(Collectors.toList());
+    }
 
 
 
@@ -93,7 +106,7 @@ public class ExamCheckRecordService {
 
 
     // Get all records by user ID
-    public List<ExamCheckRecord> getAllByUserId(String userId) {
+    public List<ExamCheckRecord> getAllByUserId(Integer userId) {
         return examCheckRecordRepository.findAllByUserId(userId);
     }
 
@@ -112,4 +125,43 @@ public class ExamCheckRecordService {
     public void delete(String id) {
         examCheckRecordRepository.deleteById(id);
     }
+
+
+
+
+
+
+
+    public long getTotalRecords() {
+        return examCheckRecordRepository.count();
+    }
+
+    public long getPaidRecords() {
+        return examCheckRecordRepository.countByPaymentStatus(PaymentStatus.PAID);
+    }
+
+    public long getPendingRecords() {
+        return examCheckRecordRepository.countByPaymentStatus(PaymentStatus.PENDING);
+    }
+
+    // Additional filtered versions
+    public long getTotalRecordsBetweenDates(Instant startDate, Instant endDate) {
+        return examCheckRecordRepository.countByCreatedAtBetween(startDate, endDate);
+    }
+
+    public long getPaidRecordsBetweenDates(Instant startDate, Instant endDate) {
+        return examCheckRecordRepository.countByPaymentStatusAndCreatedAtBetween(
+                PaymentStatus.PAID, startDate, endDate);
+    }
+
+    public long getPendingRecordsBetweenDates(Instant startDate, Instant endDate) {
+        return examCheckRecordRepository.countByPaymentStatusAndCreatedAtBetween(
+                PaymentStatus.PENDING, startDate, endDate);
+    }
+
+
+
 }
+
+
+

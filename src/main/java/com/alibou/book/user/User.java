@@ -52,6 +52,11 @@ public class User implements UserDetails, Principal {
     private List<Role> roles;
 
 
+    @CreatedDate
+    @Column(updatable = false)
+    private LocalDateTime createdDate;
+
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return this.roles

@@ -1,20 +1,20 @@
 package com.alibou.book.Controllers;
 
+import com.alibou.book.DTO.EligibilityMonthlySummary;
 import com.alibou.book.Entity.EligibilityRecord;
 import com.alibou.book.Services.EligibilityRecordService;
 import com.alibou.book.user.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
 import java.util.List;
 
 @RestController
 @RequestMapping("/auth/eligibilityRecords")
+@CrossOrigin(origins="*")
 @RequiredArgsConstructor
 public class EligibilityRecordController {
 
@@ -37,5 +37,55 @@ public class EligibilityRecordController {
 
         return ResponseEntity.ok(records);
     }
+
+
+
+
+
+
+    @GetMapping("/count")
+    public ResponseEntity<Long> getTotalRecordsCount() {
+        return ResponseEntity.ok(eligibilityRecordService.getTotalEligibilityRecords());
+    }
+
+    @GetMapping("/user/{userId}/count")
+    public ResponseEntity<Long> getRecordsCountByUser(@PathVariable String userId) {
+        return ResponseEntity.ok(eligibilityRecordService.getEligibilityRecordsCountByUser(userId));
+    }
+
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<List<EligibilityRecord>> getRecordsByUser(@PathVariable String userId) {
+        return ResponseEntity.ok(eligibilityRecordService.getEligibilityRecordsByUser(userId));
+    }
+
+    @GetMapping
+    public ResponseEntity<List<EligibilityRecord>> getAllRecords() {
+        return ResponseEntity.ok(eligibilityRecordService.getAllEligibilityRecords());
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<EligibilityRecord> getRecordById(@PathVariable String id) {
+        return ResponseEntity.ok(eligibilityRecordService.getEligibilityRecordById(id));
+    }
+
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteRecord(@PathVariable String id) {
+        eligibilityRecordService.deleteEligibilityRecord(id);
+        return ResponseEntity.noContent().build();
+    }
+
+
+
+
+
+
+    @GetMapping("/monthlyStats")
+    public List<EligibilityMonthlySummary> getMonthlyStats(
+            @RequestParam int year) {
+        return eligibilityRecordService.getMonthlyStats(year);
+    }
+
+
 
 }

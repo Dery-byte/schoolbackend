@@ -8,7 +8,7 @@ import java.time.Instant;
 
 public record ExamCheckRecordDTO(
         String id,
-        String userId,
+        Integer userId,
         String candidateName,
         PaymentStatus paymentStatus,
         String checkStatus,
@@ -21,7 +21,8 @@ public record ExamCheckRecordDTO(
     public static ExamCheckRecordDTO fromEntity(ExamCheckRecord record) {
         return new ExamCheckRecordDTO(
                 record.getId(),
-                record.getUserId(),
+                record.getUser().getId(),
+//                record.getUserId(),
                 record.getCandidateName(),
                 record.getPaymentStatus(),
                 record.getCheckStatus(),
