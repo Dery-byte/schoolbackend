@@ -2,6 +2,7 @@ package com.alibou.book.DTO;
 
 import com.alibou.book.Entity.Biodata;
 import com.alibou.book.Entity.Gender;
+import com.alibou.book.Entity.GhanaRegion;
 
 import java.time.LocalDate;
 
@@ -15,7 +16,8 @@ public record BiodataResponse(
         String middleName,
         Gender gender,
         LocalDate dob,
-        String recordId  // This matches the record_id we're querying by
+        String recordId, // This matches the record_id we're querying by
+        GhanaRegion region
 ) {
     public static BiodataResponse fromEntity(Biodata biodata) {
         return new BiodataResponse(
@@ -28,7 +30,8 @@ public record BiodataResponse(
                 biodata.getMiddleName(),
                 biodata.getGender(),
                 biodata.getDob(),
-                biodata.getRecord() != null ? biodata.getRecord().getId() : null
+                biodata.getRecord() != null ? biodata.getRecord().getId() : null,
+                biodata.getRegion()
         );
     }
 }

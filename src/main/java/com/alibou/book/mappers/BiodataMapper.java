@@ -19,7 +19,8 @@ public class BiodataMapper {
                 biodata.getMiddleName(),
                 biodata.getGender(),
                 biodata.getDob(),
-                biodata.getRecord() != null ? biodata.getRecord().getId() : null
+                biodata.getRecord() != null ? biodata.getRecord().getId() : null,
+                biodata.getRegion()
         );
     }
 }

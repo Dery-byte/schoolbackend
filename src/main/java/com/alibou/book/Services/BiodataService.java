@@ -1,7 +1,10 @@
 package com.alibou.book.Services;
 
 import com.alibou.book.DTO.BiodataResponse;
+import com.alibou.book.DTO.Projections.RegionStatsDTO;
+import com.alibou.book.DTO.Projections.RegionStatsResponse;
 import com.alibou.book.Entity.Biodata;
+import com.alibou.book.Entity.GhanaRegion;
 import com.alibou.book.Repositories.BiodataRepository;
 import com.alibou.book.exception.BiodataNotFoundException;
 import com.alibou.book.exception.DuplicateEmailException;
@@ -12,7 +15,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -128,6 +133,8 @@ public class BiodataService {
         if (source.getDob() != null) target.setDob(source.getDob());
         if(source.getMiddleName() !=null) target.setMiddleName(source.getMiddleName());
         if(source.getGender() !=null) target.setGender(source.getGender());
+        if(source.getRegion() !=null) target.setRegion(source.getRegion());
+
 
         // Add record update if needed
         if (source.getRecord() != null) target.setRecord(source.getRecord());
@@ -149,5 +156,35 @@ public class BiodataService {
         Biodata biodata = biodataRepository.findByRecordId(recordId)
                 .orElseThrow(() -> new BiodataNotFoundException("Record ID: " + recordId));
         return BiodataMapper.toResponse(biodata);
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+    public List<GhanaRegion> getAllRegions() {
+        return Arrays.asList(GhanaRegion.values());
+    }
+
+    public RegionStatsResponse getRegionStatistics() {
+        long totalBiodata = biodataRepository.count();
+        var regionCounts = biodataRepository.countBiodataByRegion();
+
+        var stats = regionCounts.stream()
+                .map(rc -> new RegionStatsDTO(
+                        rc.getRegion().getDisplayName(),
+                        rc.getCount(),
+                        totalBiodata > 0 ? (rc.getCount() * 100.0 / totalBiodata) : 0
+                ))
+                .collect(Collectors.toList());
+
+        return new RegionStatsResponse(totalBiodata, stats);
     }
 }

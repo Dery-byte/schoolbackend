@@ -2,7 +2,9 @@ package com.alibou.book.Controllers;
 
 import com.alibou.book.DTO.BiodataDTO;
 import com.alibou.book.DTO.BiodataResponse;
+import com.alibou.book.DTO.Projections.RegionStatsResponse;
 import com.alibou.book.Entity.Biodata;
+import com.alibou.book.Entity.GhanaRegion;
 import com.alibou.book.Services.BiodataService;
 import com.alibou.book.exception.DuplicateEmailException;
 import jakarta.validation.Valid;
@@ -96,5 +98,17 @@ public class BiodataController {
         Map<String, String> errorResponse = new HashMap<>();
         errorResponse.put("error", ex.getMessage());
         return errorResponse;
+    }
+
+
+
+    @GetMapping("/getAllRegions")
+    public ResponseEntity<List<GhanaRegion>> getAllRegions() {
+        return ResponseEntity.ok(biodataService.getAllRegions());
+    }
+
+    @GetMapping("/stats")
+    public ResponseEntity<RegionStatsResponse> getRegionStatistics() {
+        return ResponseEntity.ok(biodataService.getRegionStatistics());
     }
 }
