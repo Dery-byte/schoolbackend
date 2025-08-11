@@ -108,6 +108,10 @@ public class AuthenticationService {
         var jwtToken = jwtService.generateToken(claims, (User) auth.getPrincipal());
         return AuthenticationResponse.builder()
                 .token(jwtToken)
+                .fullName(user.getFullName())   // <-- add directly to response
+                .firstName(user.getFirstname()) // <-- optional
+                .lastName(user.getLastname())   // <-- optional
+                .email(user.getUsername())
                 .build();
     }
 
