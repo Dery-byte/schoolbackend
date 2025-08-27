@@ -24,7 +24,9 @@ public class ExamCheckRecord {
     private String candidateName;
     @Enumerated(EnumType.STRING)
     private PaymentStatus paymentStatus;     // e.g., "paid", "pending"
-    private String checkStatus;       // e.g., "completed", "not_started"
+
+    @Enumerated(EnumType.STRING) // Store enum name as String in DB
+    private CheckStatus checkStatus;       // e.g., "completed", "not_started"
     private Instant createdAt;
     private Instant lastUpdated;
     private int checkLimit = 0;

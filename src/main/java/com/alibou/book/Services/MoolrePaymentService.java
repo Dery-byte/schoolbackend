@@ -343,6 +343,7 @@ public class MoolrePaymentService {
                             PaymentStatus newStatus = determinePaymentStatus(paymentData.getTxstatus());
                             record.setPaymentStatus(newStatus);
                             record.setLastUpdated(Instant.now());
+                            record.setCheckStatus(CheckStatus.IN_PROGRESS);
 
                             // Additional fields can be updated here if needed
                             // record.setTransactionId(paymentData.getTransactionid());
@@ -367,6 +368,12 @@ public class MoolrePaymentService {
      * Sends SMS notification for successful payment.
      */
     private void sendPaymentSuccessNotification(PaymentData paymentData) {
+
+        if (user == null || user.getUsername() == null) {
+            logger.warning("User or email is null. Cannot send email.");
+            return;
+        }
+
         if (paymentData == null) {
             logger.warning("PaymentData is null. Cannot send SMS notification.");
             return;
@@ -375,14 +382,16 @@ public class MoolrePaymentService {
         String phoneNumber = paymentData.getPayer();
         String amount = String.format("%.2f", paymentData.getAmount());
         String transactionId = paymentData.getTransactionid();
+        //String username = user.getUsername();
+        String lastName = user.getLastname();
 
         if (phoneNumber == null || phoneNumber.isEmpty()) {
             logger.warning("User phone number is missing. Unable to send SMS.");
             return;
         }
 
-        String message = String.format("Dear Customer, your payment of GHS %s was successful. Transaction ID: %s. Thank you!",
-                amount, transactionId);
+        String message = String.format("Dear %s, your payment of GHS %s was successful. Transaction ID: %s. Thank you!",
+                lastName, amount, transactionId);
 
         try {
             String response = mNotifyV2SmsService.sendSms(Collections.singletonList(phoneNumber), message);

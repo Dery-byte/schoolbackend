@@ -2,6 +2,7 @@ package com.alibou.book.Services;
 
 
 import com.alibou.book.DTO.Projections.ExamCheckMonthlySummary;
+import com.alibou.book.Entity.CheckStatus;
 import com.alibou.book.Entity.ExamCheckRecord;
 import com.alibou.book.Entity.PaymentStatus;
 import com.alibou.book.Entity.WaecCandidateEntity;
@@ -45,6 +46,7 @@ public class ExamCheckRecordService {
         record.setLastUpdated(Instant.now());
         record.setExternalRef(externalRef);
         record.setPaymentStatus(PaymentStatus.PENDING);
+        record.setCheckStatus(CheckStatus.NOT_CHECKED);
         return examCheckRecordRepository.save(record);
     }
 
@@ -56,6 +58,7 @@ public class ExamCheckRecordService {
         ExamCheckRecord record = examCheckRecordRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Record not found"));
         record.setPaymentStatus(PaymentStatus.PAID);
+        record.setCheckStatus(CheckStatus.IN_PROGRESS);
         record.setLastUpdated(Instant.now());
         return examCheckRecordRepository.save(record);
     }

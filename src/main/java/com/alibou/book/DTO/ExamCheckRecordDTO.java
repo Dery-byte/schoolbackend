@@ -11,7 +11,7 @@ public record ExamCheckRecordDTO(
         Integer userId,
         String candidateName,
         PaymentStatus paymentStatus,
-        String checkStatus,
+        com.alibou.book.Entity.CheckStatus checkStatus,
         Instant createdAt,
         Instant lastUpdated,
         int checkLimit,

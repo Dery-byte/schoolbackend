@@ -1238,6 +1238,8 @@ public class WaecApiService {
 
 // Now you can safely set the record
 
+
+
         // Create eligibility record with categories
         EligibilityRecord record = new EligibilityRecord();
         record.setId(UUID.randomUUID().toString());
@@ -1301,6 +1303,8 @@ public class WaecApiService {
         }
 
         record.setUniversities(universityEntities);
+        recordToSet.setCheckStatus(CheckStatus.CHECKED);
+        examCheckRecordRepository.save(recordToSet);
         return eligibilityRecordRepository.save(record);
     }
 
