@@ -25,6 +25,8 @@ import org.springframework.security.web.authentication.logout.LogoutHandler;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.beans.factory.annotation.Value;
+
 
 import java.util.Arrays;
 import java.util.List;
@@ -40,6 +42,11 @@ public class SecurityConfiguration {
     private final LogoutHandler logoutHandler;
     private final JwtService jwtService;
     private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
+
+    @Value("${spring.security.oauth2.client.registration.google.client-id}")
+    private String clientId;
+    @Value("${spring.security.oauth2.client.registration.google.client-secret}")
+    private String clientSecret;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -139,14 +146,35 @@ public class SecurityConfiguration {
     public ClientRegistrationRepository clientRegistrationRepository() {
         return new InMemoryClientRegistrationRepository(this.googleClientRegistration());
     }
+//
+//    private ClientRegistration googleClientRegistration() {
+//        return ClientRegistration.withRegistrationId("google")
+//                .clientId("443880875552-oljn32lv3volpba03caongc7d6babo9o.apps.googleusercontent.com")
+//                .clientSecret("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") // Consider using environment variables
+//                .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
+//                .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
+//                // Use Spring's default OAuth2 callback path
+//                .redirectUri("http://localhost:8088/api/v1/auth/login/oauth2/code/google")
+//                .scope("openid", "profile", "email")
+//                .authorizationUri("https://accounts.google.com/o/oauth2/v2/auth")
+//                .tokenUri("https://www.googleapis.com/oauth2/v4/token")
+//                .userInfoUri("https://www.googleapis.com/oauth2/v3/userinfo")
+//                .userNameAttributeName(IdTokenClaimNames.SUB)
+//                .jwkSetUri("https://www.googleapis.com/oauth2/v3/certs")
+//                .clientName("Google")
+//                .build();
+//    }
 
-    private ClientRegistration googleClientRegistration() {
+
+
+    @Bean
+    public ClientRegistration googleClientRegistration()     {
+
         return ClientRegistration.withRegistrationId("google")
-                .clientId("443880875552-oljn32lv3volpba03caongc7d6babo9o.apps.googleusercontent.com")
-                .clientSecret("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") // Consider using environment variables
+                .clientId(clientId)
+                .clientSecret(clientSecret)
                 .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
                 .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
-                // Use Spring's default OAuth2 callback path
                 .redirectUri("http://localhost:8088/api/v1/auth/login/oauth2/code/google")
                 .scope("openid", "profile", "email")
                 .authorizationUri("https://accounts.google.com/o/oauth2/v2/auth")
