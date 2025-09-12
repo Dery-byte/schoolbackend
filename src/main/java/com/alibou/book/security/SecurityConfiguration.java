@@ -116,7 +116,7 @@ public class SecurityConfiguration {
                             String errorMessage = exception.getMessage() != null ?
                                     java.net.URLEncoder.encode(exception.getMessage(), "UTF-8") :
                                     "unknown_error";
-                            response.sendRedirect("http://localhost:4200/auth/error?error=" + errorMessage);
+                            response.sendRedirect("https://school-52f23.web.app/auth/error?error=" + errorMessage);
                         })
                 );
         return http.build();
