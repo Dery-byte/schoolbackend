@@ -48,6 +48,9 @@ public class SecurityConfiguration {
     @Value("${spring.security.oauth2.client.registration.google.client-secret}")
     private String clientSecret;
 
+    @Value("${spring.security.oauth2.client.registration.google.redirect-uri}")
+    private String redirectUrl;
+
 //    @Value("${GOOGLE_CLIENT_ID}")
 //    private String clientId;
 //
@@ -123,6 +126,7 @@ public class SecurityConfiguration {
         CorsConfiguration configuration = new CorsConfiguration();
         // Allow your frontend origins
         configuration.setAllowedOriginPatterns(List.of(
+                "https://school-52f23.web.app",
                 "http://localhost:4200",
                 "http://localhost:8088",
                 "https://accounts.google.com" // Allow Google OAuth2 redirects
@@ -173,7 +177,7 @@ public class SecurityConfiguration {
                 .clientSecret(clientSecret)
                 .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
                 .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
-                .redirectUri("http://localhost:8088/api/v1/auth/login/oauth2/code/google")
+                .redirectUri(redirectUrl)
                 .scope("openid", "profile", "email")
                 .authorizationUri("https://accounts.google.com/o/oauth2/v2/auth")
                 .tokenUri("https://www.googleapis.com/oauth2/v4/token")
