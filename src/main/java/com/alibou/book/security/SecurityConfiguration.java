@@ -43,16 +43,16 @@ public class SecurityConfiguration {
     private final JwtService jwtService;
     private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
 
-//    @Value("${spring.security.oauth2.client.registration.google.client-id}")
-//    private String clientId;
-//    @Value("${spring.security.oauth2.client.registration.google.client-secret}")
-//    private String clientSecret;
-
-    @Value("${GOOGLE_CLIENT_ID}")
+    @Value("${spring.security.oauth2.client.registration.google.client-id}")
     private String clientId;
-
-    @Value("${GOOGLE_CLIENT_SECRET}")
+    @Value("${spring.security.oauth2.client.registration.google.client-secret}")
     private String clientSecret;
+
+//    @Value("${GOOGLE_CLIENT_ID}")
+//    private String clientId;
+//
+//    @Value("${GOOGLE_CLIENT_SECRET}")
+//    private String clientSecret;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
