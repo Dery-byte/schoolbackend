@@ -129,6 +129,7 @@ public class SecurityConfiguration {
                 "https://school-52f23.web.app",
                 "http://localhost:4200",
                 "http://localhost:8088",
+                "https://schoolbackend-vbjh.onrender.com",
                 "https://accounts.google.com" // Allow Google OAuth2 redirects
         ));
         // Allow all HTTP methods

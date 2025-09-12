@@ -36,8 +36,6 @@ spring:
         level:
           org.springframework.mail: DEBUG
           com.alibou.book.email: DEBUG
-
-
   security:
       oauth2:
         client:
@@ -75,16 +73,13 @@ application:
   file:
     uploads:
       photos-output-path: ./uploads
-
 server:
   port: 8088
-
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
   api-docs:
     path: /v3/api-docs
-
 waec:
   api:
     url: https://verify.waecgh.org/api/resultsreq/v3
@@ -104,7 +99,6 @@ moolre:
 logging:
   level:
     com.exam: DEBUG
-
 mnotify:
   v2:
     url: https://api.mnotify.com/api/sms/quick
@@ -117,7 +111,6 @@ mnotify:
 #    api:
 #      key: AIzaSyC9uCkkvOIYzV2c2SQwlCy6hGChAEIqWHw
 #      url: https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent
-
 google:
   gemini:
     api:
