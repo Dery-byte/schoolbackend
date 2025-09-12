@@ -6,6 +6,9 @@ import com.alibou.book.Services.EligibilityRecordService;
 import com.alibou.book.user.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.web.bind.annotation.*;
 
@@ -34,9 +37,35 @@ public class EligibilityRecordController {
         List<EligibilityRecord> records = eligibilityRecordService.getRecordsByUser(userId);
         System.out.println(STR."Records for userId : \{userId}");
         System.out.println(STR." User has : \{records.size()}");
-
         return ResponseEntity.ok(records);
     }
+
+//
+//    @GetMapping("/my-eligibility-records")
+//    public ResponseEntity<List<EligibilityRecord>> getEligibilityRecordsForUser(@AuthenticationPrincipal UserDetails userDetails) {
+//        String username = userDetails.getUsername();
+//        User user = (User) userDetailsService.loadUserByUsername(username);
+//        String userId = String.valueOf(user.getId());
+//        List<EligibilityRecord> records = eligibilityRecordService.getRecordsByUser(userId);
+//        return ResponseEntity.ok(records);
+//    }
+
+
+
+//    @GetMapping("/my-eligibility-records")
+//    public ResponseEntity<List<EligibilityRecord>> getEligibilityRecordsForUser(Authentication authentication) {
+//        String username = authentication.getName(); // safer than Principal
+//
+//        System.out.println(username);
+//        User user = (User) userDetailsService.loadUserByUsername(username);
+//        String userId = String.valueOf(user.getId());
+//
+//        List<EligibilityRecord> records = eligibilityRecordService.getRecordsByUser(userId);
+//        System.out.println("Records for userId: " + userId);
+//        System.out.println("User has: " + records.size());
+//
+//        return ResponseEntity.ok(records);
+//    }
 
 
 

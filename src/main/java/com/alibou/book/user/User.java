@@ -1,12 +1,10 @@
 package com.alibou.book.user;
+import com.alibou.book.Entity.Providers;
 import com.alibou.book.role.Role;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -18,6 +16,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.security.Principal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -30,6 +29,7 @@ import static jakarta.persistence.FetchType.EAGER;
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
+//@RequiredArgsConstructor
 @Entity
 @Table(name = "_user")
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"}) // Ignore Hibernate proxy
@@ -45,16 +45,30 @@ public class User implements UserDetails, Principal {
     private String username;
     private String password;
     private String phoneNumber;
+    private String emailVerifed;
+    private String email;
 
     private boolean accountLocked;
     private boolean enabled;
     @ManyToMany(fetch = EAGER)
-    private List<Role> roles;
+    private List<Role> roles = new ArrayList<>(); // ✅ always initialized
+//    private List<Role> roles;
+
+
+
+
+    @Enumerated(value = EnumType.STRING)
+    // SELF, GOOGLE, FACEBOOK, TWITTER, LINKEDIN, GITHUB
+    private Providers provider = Providers.SELF;
+    private String providerUserId;
 
 
     @CreatedDate
     @Column(updatable = false)
     private LocalDateTime createdDate;
+
+    public <T> User(String username, String s, List<T> ts) {
+    }
 
 
     @Override
@@ -106,5 +120,8 @@ public class User implements UserDetails, Principal {
 
     public String getFullName() {
         return firstname + " " + lastname;
+    }
+
+    public void setEmailVerified(boolean b) {
     }
 }

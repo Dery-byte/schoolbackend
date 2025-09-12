@@ -37,8 +37,26 @@ spring:
           org.springframework.mail: DEBUG
           com.alibou.book.email: DEBUG
 
+
   security:
-    oauth2:
+      oauth2:
+        client:
+          registration:
+            google:
+              client-id: 443880875552-oljn32lv3volpba03caongc7d6babo9o.apps.googleusercontent.com
+              client-secret: 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
+              scope:
+                - openid
+                - profile
+                - email
+              #            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"  # ✅ Correct key & location
+              redirect-uri: http://localhost:8088/api/v1/auth/login/oauth2/code/google
+          provider:
+            google:
+              authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
+              token-uri: https://oauth2.googleapis.com/token
+              user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
+              user-name-attribute: sub
       resourceserver:
         jwt:
           issuer-uri: "https://localhost:8080/realms/postgres"
