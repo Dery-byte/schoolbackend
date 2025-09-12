@@ -76,6 +76,7 @@ import com.alibou.book.user.User;
 import com.alibou.book.user.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
@@ -87,6 +88,11 @@ import java.util.List;
 
 @Component
 public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
+
+
+    @Value("${spring.application.mailing.frontend.baseUrl}")
+    private String frontendRedirect;
+
 
     private final JwtService jwtService;
     private final UserRepository userRepository;
@@ -143,7 +149,7 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
 
 
         // Redirect to Angular with JWT
-        String redirectUrl = "http://localhost:4200/login-success?token=" + token;
+        String redirectUrl = frontendRedirect + "/login-success?token=" + token;
         getRedirectStrategy().sendRedirect(request, response, redirectUrl);
     }
 }

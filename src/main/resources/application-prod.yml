@@ -64,12 +64,10 @@ application:
       activation-url: https://school-52f23.web.app
       jwk-set-uri: http://localhost:8080/realms/postgres/protocol/openid-connect/certs
       baseUrl: https://school-52f23.web.app
-
   security:
     jwt:
       secret-key: 19k2m8GRJSBNzJee6zzNWa43JGkoMS9WsB+vfog3OXQ=
       expiration: 86400000
-
   file:
     uploads:
       photos-output-path: ./uploads
@@ -84,7 +82,6 @@ waec:
   api:
     url: https://verify.waecgh.org/api/resultsreq/v3
     token: cmtncndyZ206UHpxUTJQcURNRg==
-
 moolre:
   api:
     url: https://api.moolre.com/open/transact/payment
@@ -95,7 +92,6 @@ moolre:
   public-key: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyaWQiOjEwNjM4MiwiZXhwIjoxOTI1MDA5OTk5fQ.TlISuKTOcV_S1WM8LjPeFz9vE_64YNOH6fWKLglq7QY
   webhook:
     secret: 6cd824e6-ea05-42f5-bf30-1d63c06b75a8
-
 logging:
   level:
     com.exam: DEBUG
@@ -104,7 +100,6 @@ mnotify:
     url: https://api.mnotify.com/api/sms/quick
     key: oWmpfPGz22BObP6ng9Zjb0Xe4
     sender-id: OPTUMSERV
-
 #GOOGLE GEMINI PROPERTIES
 #google:
 #  gemini:
