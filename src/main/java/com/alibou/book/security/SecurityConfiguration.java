@@ -43,9 +43,15 @@ public class SecurityConfiguration {
     private final JwtService jwtService;
     private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
 
-    @Value("${spring.security.oauth2.client.registration.google.client-id}")
+//    @Value("${spring.security.oauth2.client.registration.google.client-id}")
+//    private String clientId;
+//    @Value("${spring.security.oauth2.client.registration.google.client-secret}")
+//    private String clientSecret;
+
+    @Value("${GOOGLE_CLIENT_ID}")
     private String clientId;
-    @Value("${spring.security.oauth2.client.registration.google.client-secret}")
+
+    @Value("${GOOGLE_CLIENT_SECRET}")
     private String clientSecret;
 
     @Bean
@@ -110,38 +116,29 @@ public class SecurityConfiguration {
                             response.sendRedirect("http://localhost:4200/auth/error?error=" + errorMessage);
                         })
                 );
-
         return http.build();
     }
-
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-
         // Allow your frontend origins
         configuration.setAllowedOriginPatterns(List.of(
                 "http://localhost:4200",
                 "http://localhost:8088",
                 "https://accounts.google.com" // Allow Google OAuth2 redirects
         ));
-
         // Allow all HTTP methods
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"));
-
         // Allow all headers
         configuration.setAllowedHeaders(List.of("*"));
-
         // Allow credentials (important for OAuth2)
         configuration.setAllowCredentials(true);
-
         // Expose headers
         configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Type"));
-
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
-
     @Bean
     public ClientRegistrationRepository clientRegistrationRepository() {
         return new InMemoryClientRegistrationRepository(this.googleClientRegistration());
@@ -169,7 +166,8 @@ public class SecurityConfiguration {
 
     @Bean
     public ClientRegistration googleClientRegistration()     {
-
+        System.out.println("This is is the ID" + clientId);
+        System.out.println("This is the secret" + clientSecret);
         return ClientRegistration.withRegistrationId("google")
                 .clientId(clientId)
                 .clientSecret(clientSecret)
