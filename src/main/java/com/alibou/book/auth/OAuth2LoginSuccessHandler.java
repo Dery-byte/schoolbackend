@@ -132,6 +132,8 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
             newUser.setUsername(email);
             newUser.setFirstname(firstName);
             newUser.setLastname(lastName);
+            newUser.isEnabled();
+            newUser.isAccountLocked();
             newUser.setPassword(""); // no password for OAuth users
             newUser.setRoles(List.of(userRole)); // assign default USER role
             return userRepository.save(newUser);
