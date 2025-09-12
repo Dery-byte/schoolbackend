@@ -90,7 +90,7 @@ import java.util.List;
 public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
 
-    @Value("${spring.application.mailing.frontend.baseUrl}")
+    @Value("${application.mailing.frontend.baseUrl}")
     private String frontendRedirect;
 
 
