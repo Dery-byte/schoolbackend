@@ -14,7 +14,6 @@ import java.time.Instant;
 @AllArgsConstructor
 @Builder
 public class ExamCheckRecord {
-
     @Id
     @GeneratedValue(strategy = GenerationType.UUID) // Java 17+ UUID generation
     private String id;
@@ -24,6 +23,11 @@ public class ExamCheckRecord {
     private String candidateName;
     @Enumerated(EnumType.STRING)
     private PaymentStatus paymentStatus;     // e.g., "paid", "pending"
+
+    @Enumerated(EnumType.STRING)
+    private SubscriptionType subscriptionType;
+
+    private  String pendingSubscriptionType;
 
     @Enumerated(EnumType.STRING) // Store enum name as String in DB
     private CheckStatus checkStatus;       // e.g., "completed", "not_started"

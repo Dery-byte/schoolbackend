@@ -1,6 +1,7 @@
 package com.alibou.book.DTO;
 
 
+import com.alibou.book.Entity.SubscriptionType;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
 
@@ -22,6 +23,7 @@ public class PaymentData {
     private String thirdpartyref;
     private String secret;
     private String ts;
+    private SubscriptionType subscriptionType;
 
 
 }

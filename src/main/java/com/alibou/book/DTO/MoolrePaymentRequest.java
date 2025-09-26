@@ -1,6 +1,7 @@
 package com.alibou.book.DTO;
 
 
+import com.alibou.book.Entity.SubscriptionType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -22,4 +23,5 @@ public class MoolrePaymentRequest {
     private String otpcode;    // Optional OTP code
     private String reference;  // Payment reference message
     private String accountnumber; // Your Moolre account number
+    private SubscriptionType subscriptionType;
 }

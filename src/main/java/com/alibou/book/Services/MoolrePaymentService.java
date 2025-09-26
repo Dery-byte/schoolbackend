@@ -79,56 +79,119 @@ public class MoolrePaymentService {
      * Initiates a payment request and manages ExamCheckRecord creation/reuse.
      * Prevents duplicate external references for the same user's pending payments.
      */
-    @Transactional
-    public MoolrePaymentResponse initiatePayment(Principal principal, MoolrePaymentRequest request, String recordId) {
-        User user = (User) userDetailsService.loadUserByUsername(principal.getName());
-        this.user = user;
-        String externalRef = getOrCreateExternalReference(user, recordId);
+//    @Transactional
+//    public MoolrePaymentResponse initiatePayment(Principal principal, MoolrePaymentRequest request, String recordId) {
+//        User user = (User) userDetailsService.loadUserByUsername(principal.getName());
+//        this.user = user;
+//        String externalRef = getOrCreateExternalReference(user, recordId);
+//
+//        HttpHeaders headers = createHeaders();
+//        request.setAccountnumber(config.getAccountNumber());
+//        request.setCurrency("GHS");
+//        request.setType(1);
+//        request.setReference("Optimus");
+//
+//        if (externalRef == null || externalRef.isEmpty()) {
+//            throw new PaymentProcessingException("Failed to generate payment reference");
+//        }
+//        request.setExternalref(externalRef);
+//
+//        log.info("Payment initiated for User: {} with External Ref: {}", principal.getName(), externalRef);
+//        System.out.println("For the webhook " + externalRef);
+//
+//        System.out.print("The resquest data for the OTP " + request);
+//        // Store externalRef for this user session
+//        userPaymentReferences.put(principal.getName(), externalRef);
+//
+//        HttpEntity<MoolrePaymentRequest> entity = new HttpEntity<>(request, headers);
+//
+//        try {
+//            ResponseEntity<String> response = restTemplate.exchange(
+//                    config.getApiUrl(),
+//                    HttpMethod.POST,
+//                    entity,
+//                    String.class
+//            );
+//
+//            log.debug("Raw response: {}", response.getBody());
+//            MoolrePaymentResponse paymentResponse = objectMapper.readValue(response.getBody(), MoolrePaymentResponse.class);
+//            paymentResponse.setExternalref(externalRef);
+//
+//            // Handle response messages
+//            handlePaymentResponse(paymentResponse);
+//
+//            return paymentResponse;
+//
+//        } catch (Exception e) {
+//            // Mark the payment as failed if payment initiation fails
+//            updateExamCheckRecordStatus(externalRef, PaymentStatus.FAILED);
+//            log.error("Payment initiation failed: {}", e.getMessage(), e);
+//            throw new PaymentProcessingException("Failed to process payment. Please try again later.", e);
+//        }
+//    }
 
-        HttpHeaders headers = createHeaders();
-        request.setAccountnumber(config.getAccountNumber());
-        request.setCurrency("GHS");
-        request.setType(1);
-        request.setReference("Optimus");
 
-        if (externalRef == null || externalRef.isEmpty()) {
-            throw new PaymentProcessingException("Failed to generate payment reference");
-        }
-        request.setExternalref(externalRef);
+@Transactional
+public MoolrePaymentResponse initiatePayment(Principal principal, MoolrePaymentRequest request, String recordId) {
+    User user = (User) userDetailsService.loadUserByUsername(principal.getName());
+    this.user = user;
+    String externalRef = getOrCreateExternalReference(user, recordId);
 
-        log.info("Payment initiated for User: {} with External Ref: {}", principal.getName(), externalRef);
-        System.out.println("For the webhook " + externalRef);
+    HttpHeaders headers = createHeaders();
+    request.setAccountnumber(config.getAccountNumber());
+    request.setCurrency("GHS");
+    request.setType(1);
+    request.setReference("Optimus");
 
-        System.out.print("The resquest data for the OTP " + request);
-        // Store externalRef for this user session
-        userPaymentReferences.put(principal.getName(), externalRef);
-
-        HttpEntity<MoolrePaymentRequest> entity = new HttpEntity<>(request, headers);
-
-        try {
-            ResponseEntity<String> response = restTemplate.exchange(
-                    config.getApiUrl(),
-                    HttpMethod.POST,
-                    entity,
-                    String.class
-            );
-
-            log.debug("Raw response: {}", response.getBody());
-            MoolrePaymentResponse paymentResponse = objectMapper.readValue(response.getBody(), MoolrePaymentResponse.class);
-            paymentResponse.setExternalref(externalRef);
-
-            // Handle response messages
-            handlePaymentResponse(paymentResponse);
-
-            return paymentResponse;
-
-        } catch (Exception e) {
-            // Mark the payment as failed if payment initiation fails
-            updateExamCheckRecordStatus(externalRef, PaymentStatus.FAILED);
-            log.error("Payment initiation failed: {}", e.getMessage(), e);
-            throw new PaymentProcessingException("Failed to process payment. Please try again later.", e);
-        }
+    if (externalRef == null || externalRef.isEmpty()) {
+        throw new PaymentProcessingException("Failed to generate payment reference");
     }
+    request.setExternalref(externalRef);
+
+    // ✅ Save pending subscription type if provided
+    if (request.getSubscriptionType() != null) {
+        examCheckRecordRepository.findByExternalRef(externalRef)
+                .ifPresent(record -> {
+                    record.setPendingSubscriptionType(request.getSubscriptionType().name());
+                    record.setLastUpdated(Instant.now());
+                    examCheckRecordRepository.save(record);
+                });
+    }
+
+    log.info("Payment initiated for User: {} with External Ref: {}", principal.getName(), externalRef);
+    System.out.println("For the webhook " + externalRef);
+    System.out.print("The request data for the OTP " + request);
+
+    // Store externalRef for this user session
+    userPaymentReferences.put(principal.getName(), externalRef);
+
+    HttpEntity<MoolrePaymentRequest> entity = new HttpEntity<>(request, headers);
+
+    try {
+        ResponseEntity<String> response = restTemplate.exchange(
+                config.getApiUrl(),
+                HttpMethod.POST,
+                entity,
+                String.class
+        );
+
+        log.debug("Raw response: {}", response.getBody());
+        MoolrePaymentResponse paymentResponse =
+                objectMapper.readValue(response.getBody(), MoolrePaymentResponse.class);
+        paymentResponse.setExternalref(externalRef);
+
+        // Handle response messages
+        handlePaymentResponse(paymentResponse);
+
+        return paymentResponse;
+
+    } catch (Exception e) {
+        // Mark the payment as failed if payment initiation fails
+        updateExamCheckRecordStatus(externalRef, PaymentStatus.FAILED);
+        log.error("Payment initiation failed: {}", e.getMessage(), e);
+        throw new PaymentProcessingException("Failed to process payment. Please try again later.", e);
+    }
+}
 
     /**
      * Gets existing pending ExamCheckRecord or creates a new one.
@@ -149,6 +212,7 @@ public class MoolrePaymentService {
                     String externalRef = generateReference();
                     record.setExternalRef(externalRef);
                     record.setLastUpdated(Instant.now());
+//                    record.setPendingSubscriptionType(subscriptionType); // ✅ temp storage
                     examCheckRecordRepository.save(record);
                     return externalRef;
                 }
@@ -162,6 +226,7 @@ public class MoolrePaymentService {
 //        newRecord.setUserId(String.valueOf(user.getId()));
         newRecord.setExternalRef(externalRef);
         newRecord.setPaymentStatus(PaymentStatus.PENDING);
+//        newRecord.setPendingSubscriptionType(subscriptionType); // ✅ temp storage
         examCheckRecordRepository.save(newRecord);
         return externalRef;
     }
@@ -344,7 +409,10 @@ public class MoolrePaymentService {
                             record.setPaymentStatus(newStatus);
                             record.setLastUpdated(Instant.now());
                             record.setCheckStatus(CheckStatus.IN_PROGRESS);
-
+//                            record.setSubscriptionType(paymentData.getSubscriptionType());
+                            record.setSubscriptionType(SubscriptionType.valueOf(record.getPendingSubscriptionType()));
+                            record.setPendingSubscriptionType(null); // clear temp
+                            System.out.println(paymentData);
                             // Additional fields can be updated here if needed
                             // record.setTransactionId(paymentData.getTransactionid());
                             // record.setAmount(paymentData.getAmount());

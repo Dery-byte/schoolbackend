@@ -104,6 +104,8 @@ public class ExamCheckRecordController {
         List<ExamCheckRecordDTO> dtos = records.stream()
                 .map(ExamCheckRecordDTO::fromEntity)
                 .toList();
+
+//        System.out.println(records);
         return ResponseEntity.ok(dtos);
     }
 

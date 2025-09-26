@@ -2,6 +2,7 @@ package com.alibou.book.DTO;
 
 import com.alibou.book.Entity.ExamCheckRecord;
 import com.alibou.book.Entity.PaymentStatus;
+import com.alibou.book.Entity.SubscriptionType;
 import com.alibou.book.Entity.WaecCandidateEntity;
 
 import java.time.Instant;
@@ -16,7 +17,8 @@ public record ExamCheckRecordDTO(
         Instant lastUpdated,
         int checkLimit,
         String externalRef,
-        WaecCandidateEntity waecCandidateEntity  // or create a DTO for this too
+        WaecCandidateEntity waecCandidateEntity,  // or create a DTO for this too
+        SubscriptionType subscriptionType
 ) {
     public static ExamCheckRecordDTO fromEntity(ExamCheckRecord record) {
         return new ExamCheckRecordDTO(
@@ -30,7 +32,8 @@ public record ExamCheckRecordDTO(
                 record.getLastUpdated(),
                 record.getCheckLimit(),
                 record.getExternalRef(),
-                record.getWaecCandidateEntity()
+                record.getWaecCandidateEntity(),
+                record.getSubscriptionType()
         );
     }
 }
