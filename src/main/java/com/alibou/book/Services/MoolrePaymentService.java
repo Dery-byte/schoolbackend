@@ -133,6 +133,10 @@ public class MoolrePaymentService {
 
 @Transactional
 public MoolrePaymentResponse initiatePayment(Principal principal, MoolrePaymentRequest request, String recordId) {
+//    if (principal == null) {
+//        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+//    }
+//
     User user = (User) userDetailsService.loadUserByUsername(principal.getName());
     this.user = user;
     String externalRef = getOrCreateExternalReference(user, recordId);

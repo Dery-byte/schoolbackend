@@ -24,6 +24,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -93,19 +94,62 @@ public class AuthenticationService {
 
     }
 
+
+
     public AuthenticationResponse authenticate(AuthenticationRequest request) throws MessagingException {
-        var auth = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.getEmail(),
-                        request.getPassword()
-                )
-        );
+        System.out.println("DEBUG: Starting authentication for email: " + request.getEmail());
+
+        Authentication auth = null;
+        try {
+            auth = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            request.getEmail(),
+                            request.getPassword()
+                    )
+            );
+            System.out.println("DEBUG: AuthenticationManager returned: " + auth);
+        } catch (Exception e) {
+            System.out.println("DEBUG: Authentication failed for email: " + request.getEmail());
+            e.printStackTrace();
+            throw e; // rethrow so you can see the root cause in logs
+        }
+
+        if (auth == null) {
+            System.out.println("DEBUG: Authentication object is null!");
+            throw new RuntimeException("Authentication failed");
+        }
+
+        Object principal = auth.getPrincipal();
+        System.out.println("DEBUG: Principal class: " + principal.getClass().getName());
+
+        if (!(principal instanceof User)) {
+            System.out.println("DEBUG: Principal is NOT an instance of your User class!");
+            throw new RuntimeException("Unexpected principal type: " + principal.getClass().getName());
+        }
+
+        User user = (User) principal;
+        System.out.println("DEBUG: Authenticated user -> fullName: " + user.getFullName()
+                + ", email: " + user.getUsername());
 
         var claims = new HashMap<String, Object>();
-        var user = ((User) auth.getPrincipal());
         claims.put("fullName", user.getFullName());
 
-        var jwtToken = jwtService.generateToken(claims, (User) auth.getPrincipal());
+        String jwtToken = null;
+        try {
+            jwtToken = jwtService.generateToken(claims, user);
+            System.out.println("DEBUG: Generated JWT token: " + jwtToken);
+        } catch (Exception e) {
+            System.out.println("DEBUG: Failed to generate JWT token!");
+            e.printStackTrace();
+            throw e;
+        }
+
+        if (jwtToken == null || jwtToken.isEmpty()) {
+            System.out.println("DEBUG: JWT token is null or empty!");
+            throw new RuntimeException("JWT token generation failed");
+        }
+
+        System.out.println("DEBUG: Building AuthenticationResponse...");
         return AuthenticationResponse.builder()
                 .token(jwtToken)
                 .fullName(user.getFullName())   // <-- add directly to response
@@ -114,6 +158,29 @@ public class AuthenticationService {
                 .email(user.getUsername())
                 .build();
     }
+
+//
+//    public AuthenticationResponse authenticate(AuthenticationRequest request) throws MessagingException {
+//        var auth = authenticationManager.authenticate(
+//                new UsernamePasswordAuthenticationToken(
+//                        request.getEmail(),
+//                        request.getPassword()
+//                )
+//        );
+//
+//        var claims = new HashMap<String, Object>();
+//        var user = ((User) auth.getPrincipal());
+//        claims.put("fullName", user.getFullName());
+//
+//        var jwtToken = jwtService.generateToken(claims, (User) auth.getPrincipal());
+//        return AuthenticationResponse.builder()
+//                .token(jwtToken)
+//                .fullName(user.getFullName())   // <-- add directly to response
+//                .firstName(user.getFirstname()) // <-- optional
+//                .lastName(user.getLastname())   // <-- optional
+//                .email(user.getUsername())
+//                .build();
+//    }
 
 
 
