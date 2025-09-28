@@ -1,10 +1,10 @@
 package com.alibou.book.handler;
 
-import com.alibou.book.exception.ActivationTokenException;
-import com.alibou.book.exception.DuplicateEmailException;
-import com.alibou.book.exception.DuplicateUsernameException;
-import com.alibou.book.exception.OperationNotPermittedException;
+import com.alibou.book.Errors.ErrorResponse;
+import com.alibou.book.exception.*;
 import jakarta.mail.MessagingException;
+import jakarta.validation.ConstraintViolationException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -14,8 +14,12 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.WebRequest;
 
+import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import static com.alibou.book.handler.BusinessErrorCodes.ACCOUNT_DISABLED;
@@ -138,15 +142,15 @@ public class GlobalExceptionHandler {
 
 
 
-    @ExceptionHandler(DuplicateEmailException.class)
-    public ResponseEntity<ExceptionResponse> handleDuplicateEmail(DuplicateEmailException ex) {
-        return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
-                .body(ExceptionResponse.builder()
-                        .businessErrorDescription(ex.getMessage())
-                        .error("Email conflict")
-                        .build());
-    }
+//    @ExceptionHandler(DuplicateEmailException.class)
+//    public ResponseEntity<ExceptionResponse> handleDuplicateEmail(DuplicateEmailException ex) {
+//        return ResponseEntity
+//                .status(HttpStatus.BAD_REQUEST)
+//                .body(ExceptionResponse.builder()
+//                        .businessErrorDescription(ex.getMessage())
+//                        .error("Email conflict")
+//                        .build());
+//    }
 
     @ExceptionHandler(DuplicateUsernameException.class)
     public ResponseEntity<ExceptionResponse> handleDuplicateUsername(DuplicateUsernameException ex) {
@@ -174,36 +178,69 @@ public class GlobalExceptionHandler {
 
 
 
-
-
-
+//
+//
 //    @ExceptionHandler(Exception.class)
-//    public ResponseEntity<ExceptionResponse> handleUserExistAlready(Exception exp) {
-//        exp.printStackTrace();
+//    public ResponseEntity<ErrorResponse> handleAllExceptions(Exception ex, WebRequest request) {
+//        ex.printStackTrace();
 //
-//        String errorMessage = exp.getMessage();
+//        String errorMessage = ex.getMessage();
+//        String message = "An unexpected error occurred";
 //
-//        System.out.print("This is the Error message "+ errorMessage);
-//        String userFriendlyMessage = "An account with this email already exists";
-//
-//        // Check for duplicate email or username
-//        if (errorMessage != null && errorMessage.contains("[Cannot insert duplicate key")) {
-//            if (errorMessage.contains("for key '_user.UK_nlcolwbx8ujaen5h0u2kr2bn2'")) {
-//                userFriendlyMessage = "An account with this email already exists.";
-//            } else if (errorMessage.contains("for key '_user.UK_username'")) {
-//                userFriendlyMessage = "Username is already taken.";
+//        // Check for duplicate key errors from DB
+//        if (errorMessage != null && errorMessage.contains("Cannot insert duplicate key")) {
+//            if (errorMessage.contains("UK_nlcolwbx8ujaen5h0u2kr2bn2")) { // your email constraint name
+//                message = "An account with this email already exists.";
+//            } else if (errorMessage.contains("UK_username")) { // your username constraint name
+//                message = "Username is already taken.";
 //            }
-//            // You can add more conditions for different unique keys here
 //        }
 //
-//        return ResponseEntity
-//                .status(HttpStatus.BAD_REQUEST)
-//                .body(
-//                        ExceptionResponse.builder()
-//                                .businessErrorDescription(userFriendlyMessage)
-//                                .error(errorMessage)
-//                                .build()
-//                );
+//        ErrorResponse errorResponse = new ErrorResponse(
+//                LocalDateTime.now(),
+//                HttpStatus.CONFLICT.value(), // 409 is the right code for duplicates
+//                "Conflict",
+//                message,
+//                request.getDescription(false).replace("uri=", "")
+//        );
+//
+//        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
 //    }
 
+
+
+
+    @ExceptionHandler(InvalidAgeException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidAge(InvalidAgeException ex, WebRequest request) {
+        ErrorResponse errorResponse = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.BAD_REQUEST.value(),
+                "Invalid Age",
+                ex.getMessage(),
+                request.getDescription(false).replace("uri=", "")
+        );
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+
+
+
+    @ExceptionHandler(DuplicateEmailException.class)
+    public ResponseEntity<Object> handleDuplicateEmail(DuplicateEmailException ex) {
+//        System.out.println("=== EXCEPTION HANDLER DEBUG ===");
+//        System.out.println("Exception class: " + ex.getClass().getName());
+//        System.out.println("Exception message: '" + ex.getMessage() + "'");
+//        System.out.println("Message is null: " + (ex.getMessage() == null));
+//        System.out.println("===============================");
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now());
+        body.put("status", HttpStatus.CONFLICT.value());
+        body.put("error", "Duplicate Email");
+        body.put("message", ex.getMessage());
+        return new ResponseEntity<>(body, HttpStatus.CONFLICT);
+    }
+
+
+    // fallback catch-all
 }
+

@@ -11,6 +11,7 @@ import com.alibou.book.exception.DuplicateEmailException;
 import com.alibou.book.exception.InvalidAgeException;
 import com.alibou.book.mappers.BiodataMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,17 +26,40 @@ import java.util.stream.Collectors;
 public class BiodataService {
 
     private final BiodataRepository biodataRepository;
-    private static final int MINIMUM_AGE = 6;
+    private static final int MINIMUM_AGE = 16;
 
     // ========== PUBLIC CRUD METHODS ========== //
 
     /**
      * Creates new biodata after validation
      */
+//    public Biodata createBiodata(Biodata biodata) {
+//        validateBiodataForCreation(biodata);
+//        return biodataRepository.save(biodata);
+//    }
+
+
+
     public Biodata createBiodata(Biodata biodata) {
         validateBiodataForCreation(biodata);
-        return biodataRepository.save(biodata);
+
+        try {
+            return biodataRepository.save(biodata);
+        } catch (DataIntegrityViolationException ex) {
+            System.out.println("DataIntegrityViolationException caught!");
+            System.out.println("Exception type: " + ex.getClass().getName());
+            System.out.println("Exception message: " + ex.getMessage());
+            System.out.println("Biodata email: " + biodata.getEmail());
+
+            String email = biodata.getEmail() != null ? biodata.getEmail() : "unknown";
+            throw new DuplicateEmailException("Email already exists: " + email);
+        } catch (Exception ex) {
+            System.out.println("Other exception caught: " + ex.getClass().getName());
+            System.out.println("Message: " + ex.getMessage());
+            throw ex; // Re-throw to see what's actually being caught
+        }
     }
+
 
 
 
@@ -111,11 +135,34 @@ public class BiodataService {
         }
     }
 
+//    private void validateEmailUniqueness(String email) {
+//        if (emailExists(email)) {
+//            throw new DuplicateEmailException("Email already exists: " + email);
+//        }
+//    }
+
+
+
     private void validateEmailUniqueness(String email) {
-        if (emailExists(email)) {
-            throw new DuplicateEmailException("Email already exists: " + email);
+//        System.out.println("=== EMAIL VALIDATION DEBUG ===");
+//        System.out.println("Input email: '" + email + "'");
+//        System.out.println("Email is null: " + (email == null));
+
+        boolean exists = emailExists(email);
+//        System.out.println("Email exists: " + exists);
+
+        if (exists) {
+            String message = email + " already exists. ";
+//            System.out.println("Creating exception with message: '" + message + "'");
+            DuplicateEmailException exception = new DuplicateEmailException(message);
+//            System.out.println("Exception getMessage(): '" + exception.getMessage() + "'");
+//            System.out.println("================================");
+            throw exception;
         }
+        System.out.println("Validation passed");
+        System.out.println("================================");
     }
+
 
     // ========== PRIVATE HELPER METHODS ========== //
 

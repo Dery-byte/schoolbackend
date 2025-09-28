@@ -7,12 +7,14 @@ import com.alibou.book.Entity.Biodata;
 import com.alibou.book.Entity.GhanaRegion;
 import com.alibou.book.Services.BiodataService;
 import com.alibou.book.exception.DuplicateEmailException;
+import com.alibou.book.exception.InvalidAgeException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,13 +28,29 @@ public class BiodataController {
 
     @PostMapping("/addBiodata")
     public ResponseEntity<Biodata> createBiodata(@Valid @RequestBody Biodata biodata) {
-        try {
-            Biodata savedBiodata = biodataService.createBiodata(biodata);
-            return new ResponseEntity<>(savedBiodata, HttpStatus.CREATED);
-        } catch (DuplicateEmailException ex) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).build();
-        }
+        // No try-catch - let exception bubble up
+        Biodata savedBiodata = biodataService.createBiodata(biodata);
+        return new ResponseEntity<>(savedBiodata, HttpStatus.CREATED);
     }
+
+//    @PostMapping("/addBiodata")
+//    public ResponseEntity<?> createBiodata(@Valid @RequestBody Biodata biodata) {
+//        try {
+//            Biodata savedBiodata = biodataService.createBiodata(biodata);
+//            return new ResponseEntity<>(savedBiodata, HttpStatus.CREATED);
+//        } catch (DuplicateEmailException ex) {
+//            // Create error response object
+//            Map<String, Object> errorResponse = new HashMap<>();
+//            errorResponse.put("timestamp", LocalDateTime.now());
+//            errorResponse.put("status", HttpStatus.CONFLICT.value());
+//            errorResponse.put("error", "Duplicate Email");
+//            errorResponse.put("message", ex.getMessage()); // This will contain your actual error message
+//
+//            return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+//        }
+//        // InvalidAgeException is handled by GlobalExceptionHandler - no need to catch here
+//    }
+
 
     @GetMapping("/{id}")
     public ResponseEntity<BiodataDTO> getBiodataById(@PathVariable Integer id) {
