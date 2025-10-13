@@ -33,6 +33,24 @@ public class Program {
 
 
 
+
+
+    // ✅ Core subjects and grades (e.g., {"Mathematics": "A1", "English": "B2"})
+    @ElementCollection
+    @CollectionTable(name = "program_core_subjects", joinColumns = @JoinColumn(name = "program_id"))
+    @MapKeyColumn(name = "subject")
+    @Column(name = "grade")
+    private Map<String, String> coreSubjects;
+
+    // ✅ Alternative subjects and grades (e.g., {"Chemistry": "B3", "Biology": "C4"})
+    @ElementCollection
+    @CollectionTable(name = "program_alternative_subjects", joinColumns = @JoinColumn(name = "program_id"))
+    @MapKeyColumn(name = "subject")
+    @Column(name = "grade")
+    private Map<String, String> alternativeSubjects;
+
+
+
     // Many-to-Many relationship with Category
     @ManyToMany
     @JoinTable(

@@ -12,6 +12,9 @@ public class UpdateProgramDTO {
     private String name;
     private Map<String, String> cutoffPoints;
     private Set<CategoryIdDTO> categoryIds;
+    private Map<String, String> coreSubjects;
+    private Map<String, String> alternativeSubjects;
+
 
     // Getters and setters
     public Long getProgramId() { return programId; }

@@ -45,9 +45,12 @@
 package com.alibou.book.DTO;
 
 import jakarta.validation.constraints.NotNull;
+import lombok.Data;
+
 import java.util.List;
 import java.util.Map;
 
+@Data
 public class ProgramRequestDTO {
     @NotNull(message = "Select University")
     private Long universityId;
@@ -71,11 +74,33 @@ public class ProgramRequestDTO {
     }
 
     public static class ProgramWithCategoriesDTO {
+
+        private Map<String, String> coreSubjects;        // ✅ e.g. {"Mathematics":"A1","English":"B2"}
+        private Map<String, String> alternativeSubjects;
         private String name;
         private Map<String, String> cutoffPoints;
         private List<CategoryIdDTO> categoryIds;
 
+
         // Getters and Setters
+
+
+        public Map<String, String> getCoreSubjects() {
+            return coreSubjects;
+        }
+
+        public void setCoreSubjects(Map<String, String> coreSubjects) {
+            this.coreSubjects = coreSubjects;
+        }
+
+        public Map<String, String> getAlternativeSubjects() {
+            return alternativeSubjects;
+        }
+
+        public void setAlternativeSubjects(Map<String, String> alternativeSubjects) {
+            this.alternativeSubjects = alternativeSubjects;
+        }
+
         public String getName() {
             return name;
         }
