@@ -60,22 +60,22 @@ public class ProgramService {
 
 
 
-    @Transactional
-    public Program updateProgram(UpdateProgramDTO updateDTO) {
-        Program program = programRepository.findById(updateDTO.getProgramId())
-                .orElseThrow(() -> new ResourceNotFoundException("Program not found"));
-        program.setName(updateDTO.getName());
-        program.setCutoffPoints(updateDTO.getCutoffPoints());
-        if (updateDTO.getCategoryIds() != null) {
-            Set<Category> categories = categoryRepository.findAllById(
-                    updateDTO.getCategoryIds().stream()
-                            .map(CategoryIdDTO::getId)
-                            .collect(Collectors.toSet())
-            ).stream().collect(Collectors.toSet());
-            program.setCategories(categories);
-        }
-        return programRepository.save(program);
-    }
+//    @Transactional
+//    public Program updateProgram(UpdateProgramDTO updateDTO) {
+//        Program program = programRepository.findById(updateDTO.getProgramId())
+//                .orElseThrow(() -> new ResourceNotFoundException("Program not found"));
+//        program.setName(updateDTO.getName());
+//        program.setCutoffPoints(updateDTO.getCutoffPoints());
+//        if (updateDTO.getCategoryIds() != null) {
+//            Set<Category> categories = categoryRepository.findAllById(
+//                    updateDTO.getCategoryIds().stream()
+//                            .map(CategoryIdDTO::getId)
+//                            .collect(Collectors.toSet())
+//            ).stream().collect(Collectors.toSet());
+//            program.setCategories(categories);
+//        }
+//        return programRepository.save(program);
+//    }
 
 
 

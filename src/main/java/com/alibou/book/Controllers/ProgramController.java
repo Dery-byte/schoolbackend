@@ -88,7 +88,7 @@ public class ProgramController {
             program.setCoreSubjects(programDTO.getCoreSubjects());
             program.setAlternativeSubjects(programDTO.getAlternativeSubjects());
             // ✅ Optional: cutoff points if applicable
-            program.setCutoffPoints(programDTO.getCutoffPoints());
+//            program.setCutoffPoints(programDTO.getCutoffPoints());
             // ✅ Handle categories for each program
             if (programDTO.getCategoryIds() != null && !programDTO.getCategoryIds().isEmpty()) {
                 Set<Long> categoryIds = programDTO.getCategoryIds().stream()
@@ -188,7 +188,7 @@ public class ProgramController {
                         "Program not found with id: " + updateDTO.getProgramId()));
         // Update basic and map-based fields
         Optional.ofNullable(updateDTO.getName()).ifPresent(program::setName);
-        Optional.ofNullable(updateDTO.getCutoffPoints()).ifPresent(program::setCutoffPoints);
+//        Optional.ofNullable(updateDTO.getCutoffPoints()).ifPresent(program::setCutoffPoints);
         Optional.ofNullable(updateDTO.getCoreSubjects()).ifPresent(program::setCoreSubjects);
         Optional.ofNullable(updateDTO.getAlternativeSubjects()).ifPresent(program::setAlternativeSubjects);
         // Handle categories

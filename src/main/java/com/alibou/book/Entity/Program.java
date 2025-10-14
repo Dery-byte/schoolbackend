@@ -25,11 +25,11 @@ public class Program {
     @JsonIgnore // Prevents infinite recursion
     private University university;
 
-    @ElementCollection
-    @CollectionTable(name = "program_cutoff_points", joinColumns = @JoinColumn(name = "program_id"))
-    @MapKeyColumn(name = "subject")
-    @Column(name = "grade")
-    private Map<String, String> cutoffPoints; // Example: {"Mathematics": "B2", "English": "C4"}
+//    @ElementCollection
+//    @CollectionTable(name = "program_cutoff_points", joinColumns = @JoinColumn(name = "program_id"))
+//    @MapKeyColumn(name = "subject")
+//    @Column(name = "grade")
+////    private Map<String, String> cutoffPoints; // Example: {"Mathematics": "B2", "English": "C4"}
 
 
 
