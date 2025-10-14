@@ -4,6 +4,9 @@ spring:
     username: Mudita
     password: EMM@RESCUe12
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+    hikari:
+      auto-commit: true
+
   jpa:
     hibernate:
       ddl-auto: update
@@ -15,6 +18,10 @@ spring:
         #default_schema: school
     database:
     database-platform: org.hibernate.dialect.SQLServer2016Dialect
+  logging:
+    level:
+      org.hibernate.SQL: DEBUG
+      org.hibernate.transaction: TRACE
 
   mail:
     host: smtp.gmail.com

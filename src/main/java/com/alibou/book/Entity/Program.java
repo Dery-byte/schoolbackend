@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -36,18 +37,18 @@ public class Program {
 
 
     // ✅ Core subjects and grades (e.g., {"Mathematics": "A1", "English": "B2"})
-    @ElementCollection
-    @CollectionTable(name = "program_core_subjects", joinColumns = @JoinColumn(name = "program_id"))
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "program_core_subjects", joinColumns = @JoinColumn(name = "program_id", nullable = false))
     @MapKeyColumn(name = "subject")
     @Column(name = "grade")
-    private Map<String, String> coreSubjects;
+    private Map<String, String> coreSubjects = new HashMap<>();
 
     // ✅ Alternative subjects and grades (e.g., {"Chemistry": "B3", "Biology": "C4"})
-    @ElementCollection
-    @CollectionTable(name = "program_alternative_subjects", joinColumns = @JoinColumn(name = "program_id"))
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "program_alternative_subjects", joinColumns = @JoinColumn(name = "program_id", nullable = false))
     @MapKeyColumn(name = "subject")
     @Column(name = "grade")
-    private Map<String, String> alternativeSubjects;
+    private Map<String, String> alternativeSubjects = new HashMap<>();
 
 
 
