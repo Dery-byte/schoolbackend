@@ -41,40 +41,6 @@ public class ProgramController {
 
 
 
-
-//
-//    @PostMapping("/{universityId}/add")
-//    public ResponseEntity<List<Program>> addProgramToUniversity(
-//            @PathVariable Long universityId,
-//            @RequestBody List<Program> programs) {
-//        University university = universityService.getUniversityById(universityId);
-//        for (Program program : programs) {
-//            program.setUniversity(university);
-//        }
-//        List<Program> savedPrograms = programRepository.saveAll(programs);
-//        return ResponseEntity.ok(savedPrograms);
-//    }
-
-
-
-//    @PostMapping("/addProgram")
-//    public ResponseEntity<List<Program>> addProgramToUniversity(
-//            @RequestBody ProgramRequestDTO requestDTO) {
-//
-//        University university = universityService.getUniversityById(requestDTO.getUniversityId());
-//        List<Program> programs = requestDTO.getPrograms();
-//
-//        for (Program program : programs) {
-//            program.setUniversity(university);
-//        }
-//
-//        List<Program> savedPrograms = programRepository.saveAll(programs);
-//        return ResponseEntity.ok(savedPrograms);
-//    }
-
-
-
-
     @PostMapping("/addProgram")
     @Transactional
     public ResponseEntity<List<Program>> addProgramToUniversity(@RequestBody ProgramRequestDTO requestDTO) {
