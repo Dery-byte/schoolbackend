@@ -5,10 +5,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 @Setter@Getter
 @Entity
@@ -49,6 +46,14 @@ public class Program {
     @MapKeyColumn(name = "subject")
     @Column(name = "grade")
     private Map<String, String> alternativeSubjects = new HashMap<>();
+
+
+
+
+    // ✅ New flexible format supporting AND/OR logic
+    @ElementCollection
+    @CollectionTable(name = "program_alt_groups", joinColumns = @JoinColumn(name = "program_id"))
+    private List<SubjectRequirement> alternativeGroups = new ArrayList<>();
 
 
 

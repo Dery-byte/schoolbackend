@@ -74,6 +74,7 @@ public class ProgramRequestDTO {
     }
 
     public static class ProgramWithCategoriesDTO {
+        private List<SubjectRequirementDTO> alternativeGroups; // ✅ new field
 
         private Map<String, String> coreSubjects;        // ✅ e.g. {"Mathematics":"A1","English":"B2"}
         private Map<String, String> alternativeSubjects;
@@ -124,5 +125,21 @@ public class ProgramRequestDTO {
         public void setCategoryIds(List<CategoryIdDTO> categoryIds) {
             this.categoryIds = categoryIds;
         }
+
+        public List<SubjectRequirementDTO> getAlternativeGroups() {
+            return alternativeGroups;
+        }
+
+        public void setAlternativeGroups(List<SubjectRequirementDTO> alternativeGroups) {
+            this.alternativeGroups = alternativeGroups;
+        }
+
+
+    }
+    @Data
+    public static class SubjectRequirementDTO {
+        private List<String> subjects;      // e.g. ["Physics", "Maths (Elective)"]
+        private String requiredGrade;       // e.g. "C6"
+        private boolean anyOf;              // true → OR condition
     }
 }

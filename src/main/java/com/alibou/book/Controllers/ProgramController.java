@@ -5,12 +5,14 @@ import com.alibou.book.DTO.ProgramRequestDTO;
 import com.alibou.book.DTO.UpdateProgramDTO;
 import com.alibou.book.Entity.Category;
 import com.alibou.book.Entity.Program;
+import com.alibou.book.Entity.SubjectRequirement;
 import com.alibou.book.Entity.University;
 import com.alibou.book.Repositories.CategoryRepository;
 import com.alibou.book.Repositories.ProgramRepository;
 import com.alibou.book.Services.ProgramService;
 import com.alibou.book.Services.UniversityService;
 import com.alibou.book.exception.ResourceNotFoundException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.*;
 import java.util.stream.Collectors;
 import com.alibou.book.DTO.CategoryIdDTO;
+
 
 
 @RestController
@@ -38,72 +41,76 @@ public class ProgramController {
     @Autowired
     private ProgramRepository programRepository;
 
-
-
-
     @PostMapping("/addProgram")
     @Transactional
     public ResponseEntity<List<Program>> addProgramToUniversity(@RequestBody ProgramRequestDTO requestDTO) {
         University university = universityService.getUniversityById(requestDTO.getUniversityId());
         List<Program> savedPrograms = new ArrayList<>();
+        ObjectMapper mapper = new ObjectMapper();
+
         for (ProgramRequestDTO.ProgramWithCategoriesDTO programDTO : requestDTO.getPrograms()) {
             Program program = new Program();
             program.setName(programDTO.getName());
             program.setUniversity(university);
-            // ✅ Set core and alternative subjects with grades
+
+            // ✅ Core and alternative subjects
             program.setCoreSubjects(programDTO.getCoreSubjects());
             program.setAlternativeSubjects(programDTO.getAlternativeSubjects());
-            // ✅ Optional: cutoff points if applicable
-//            program.setCutoffPoints(programDTO.getCutoffPoints());
-            // ✅ Handle categories for each program
+
+            // ✅ Parse and assign alternativeGroups (if present)
+            if (programDTO.getAlternativeGroups() != null && !programDTO.getAlternativeGroups().isEmpty()) {
+                List<SubjectRequirement> groups = programDTO.getAlternativeGroups().stream().map(dto -> {
+                    SubjectRequirement group = new SubjectRequirement();
+                    group.setRequiredGrade(dto.getRequiredGrade());
+                    group.setAnyOf(dto.isAnyOf());
+                    group.setSubjects(dto.getSubjects()); // this auto-serializes to JSON internally
+                    return group;
+                }).toList();
+                program.setAlternativeGroups(groups);
+            }
+
+            // ✅ Handle categories
             if (programDTO.getCategoryIds() != null && !programDTO.getCategoryIds().isEmpty()) {
                 Set<Long> categoryIds = programDTO.getCategoryIds().stream()
                         .map(CategoryIdDTO::getId)
                         .collect(Collectors.toSet());
                 List<Category> categoryList = categoryRepository.findAllById(categoryIds);
-                Set<Category> categories = new HashSet<>(categoryList);
-                program.setCategories(categories);
+                program.setCategories(new HashSet<>(categoryList));
             }
+
             savedPrograms.add(programRepository.save(program));
         }
+
         return ResponseEntity.ok(savedPrograms);
     }
 
-//    public ResponseEntity<List<Program>> addProgramToUniversity(
-//            @RequestBody ProgramRequestDTO requestDTO) {
-//
+//    @PostMapping("/addProgram")
+//    @Transactional
+//    public ResponseEntity<List<Program>> addProgramToUniversity(@RequestBody ProgramRequestDTO requestDTO) {
 //        University university = universityService.getUniversityById(requestDTO.getUniversityId());
 //        List<Program> savedPrograms = new ArrayList<>();
-//
 //        for (ProgramRequestDTO.ProgramWithCategoriesDTO programDTO : requestDTO.getPrograms()) {
 //            Program program = new Program();
 //            program.setName(programDTO.getName());
-//            program.setCutoffPoints(programDTO.getCutoffPoints());
 //            program.setUniversity(university);
-//
-//            // Handle categories for each program
+//            // ✅ Set core and alternative subjects with grades
+//            program.setCoreSubjects(programDTO.getCoreSubjects());
+//            program.setAlternativeSubjects(programDTO.getAlternativeSubjects());
+//            // ✅ Optional: cutoff points if applicable
+////            program.setCutoffPoints(programDTO.getCutoffPoints());
+//            // ✅ Handle categories for each program
 //            if (programDTO.getCategoryIds() != null && !programDTO.getCategoryIds().isEmpty()) {
 //                Set<Long> categoryIds = programDTO.getCategoryIds().stream()
 //                        .map(CategoryIdDTO::getId)
 //                        .collect(Collectors.toSet());
-//                // Convert the List from findAllById to a Set
 //                List<Category> categoryList = categoryRepository.findAllById(categoryIds);
 //                Set<Category> categories = new HashSet<>(categoryList);
 //                program.setCategories(categories);
 //            }
-//
 //            savedPrograms.add(programRepository.save(program));
 //        }
-//
 //        return ResponseEntity.ok(savedPrograms);
 //    }
-
-
-
-
-
-
-
 
 
     @GetMapping("/university/{universityId}")
