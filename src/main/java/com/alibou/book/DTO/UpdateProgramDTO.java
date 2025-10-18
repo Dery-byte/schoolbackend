@@ -2,6 +2,7 @@ package com.alibou.book.DTO;
 
 import lombok.Data;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -14,6 +15,7 @@ public class UpdateProgramDTO {
     private Set<CategoryIdDTO> categoryIds;
     private Map<String, String> coreSubjects;
     private Map<String, String> alternativeSubjects;
+    private List<SubjectRequirementDTO> alternativeGroups; // 👈 Added
 
 
     // Getters and setters

@@ -150,24 +150,80 @@ public class ProgramController {
     }
 
 
+//
+//
+//
+//    @PutMapping("/updateProgram")
+//    @Transactional
+//    public ResponseEntity<Program> updateProgram(@Valid @RequestBody UpdateProgramDTO updateDTO) {
+//        Program program = programRepository.findById(updateDTO.getProgramId())
+//                .orElseThrow(() -> new ResourceNotFoundException(
+//                        "Program not found with id: " + updateDTO.getProgramId()));
+//        // Update basic and map-based fields
+//        Optional.ofNullable(updateDTO.getName()).ifPresent(program::setName);
+////        Optional.ofNullable(updateDTO.getCutoffPoints()).ifPresent(program::setCutoffPoints);
+//        Optional.ofNullable(updateDTO.getCoreSubjects()).ifPresent(program::setCoreSubjects);
+//        Optional.ofNullable(updateDTO.getAlternativeSubjects()).ifPresent(program::setAlternativeSubjects);
+//        // Handle categories
+//        updateCategories(program, updateDTO.getCategoryIds());
+//        Program updatedProgram = programRepository.save(program);
+//        return ResponseEntity.ok(updatedProgram);
+//    }
+//
+//    private void updateCategories(Program program, Collection<CategoryIdDTO> categoryIds) {
+//        if (categoryIds != null && !categoryIds.isEmpty()) {
+//            Set<Long> ids = categoryIds.stream()
+//                    .map(CategoryIdDTO::getId)
+//                    .collect(Collectors.toSet());
+//            List<Category> categories = categoryRepository.findAllById(ids);
+//            program.setCategories(new HashSet<>(categories));
+//        }
+//    }
+//
+//
+//
 
 
 
-    @PutMapping("/updateProgram")
-    @Transactional
-    public ResponseEntity<Program> updateProgram(@Valid @RequestBody UpdateProgramDTO updateDTO) {
-        Program program = programRepository.findById(updateDTO.getProgramId())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Program not found with id: " + updateDTO.getProgramId()));
-        // Update basic and map-based fields
-        Optional.ofNullable(updateDTO.getName()).ifPresent(program::setName);
-//        Optional.ofNullable(updateDTO.getCutoffPoints()).ifPresent(program::setCutoffPoints);
-        Optional.ofNullable(updateDTO.getCoreSubjects()).ifPresent(program::setCoreSubjects);
-        Optional.ofNullable(updateDTO.getAlternativeSubjects()).ifPresent(program::setAlternativeSubjects);
-        // Handle categories
-        updateCategories(program, updateDTO.getCategoryIds());
-        Program updatedProgram = programRepository.save(program);
-        return ResponseEntity.ok(updatedProgram);
+@PutMapping("/updateProgram")
+@Transactional
+public ResponseEntity<Program> updateProgram(@Valid @RequestBody UpdateProgramDTO updateDTO) {
+    Program program = programRepository.findById(updateDTO.getProgramId())
+            .orElseThrow(() -> new ResourceNotFoundException(
+                    "Program not found with id: " + updateDTO.getProgramId()));
+
+    // ✅ Update basic fields
+    Optional.ofNullable(updateDTO.getName()).ifPresent(program::setName);
+    Optional.ofNullable(updateDTO.getCoreSubjects()).ifPresent(program::setCoreSubjects);
+    Optional.ofNullable(updateDTO.getAlternativeSubjects()).ifPresent(program::setAlternativeSubjects);
+
+    // ✅ Update categories
+    updateCategories(program, updateDTO.getCategoryIds());
+
+    // ✅ Update alternative groups (this is the new part)
+    if (updateDTO.getAlternativeGroups() != null) {
+        List<SubjectRequirement> updatedGroups = updateDTO.getAlternativeGroups().stream()
+                .map(dto -> {
+                    SubjectRequirement group = new SubjectRequirement();
+                    group.setRequiredGrade(dto.getRequiredGrade());
+                    group.setAnyOf(dto.isAnyOf());
+                    group.setSubjects(dto.getSubjects() != null ? dto.getSubjects() : List.of());
+                    return group;
+                })
+                .collect(Collectors.toList());
+        program.setAlternativeGroups(updatedGroups);
+    }
+
+    // ✅ Save and return updated program
+    Program updatedProgram = programRepository.save(program);
+    return ResponseEntity.ok(updatedProgram);
+}
+
+
+
+    @GetMapping("/getProgramById/{id}")
+    public ResponseEntity<Program> getUniversityById(@PathVariable Long id) {
+        return ResponseEntity.ok(programService.getProgramById(id));
     }
 
     private void updateCategories(Program program, Collection<CategoryIdDTO> categoryIds) {
@@ -178,38 +234,6 @@ public class ProgramController {
             List<Category> categories = categoryRepository.findAllById(ids);
             program.setCategories(new HashSet<>(categories));
         }
-    }
-
-
-//    public ResponseEntity<Program> updateProgram(
-//            @Valid @RequestBody UpdateProgramDTO updateDTO) {
-//        Program program = programRepository.findById(updateDTO.getProgramId())
-//                .orElseThrow(() -> new ResourceNotFoundException(
-//                        "Program not found with id: " + updateDTO.getProgramId()));
-//        // Update basic fields
-//        if (updateDTO.getName() != null) {
-//            program.setName(updateDTO.getName());
-//        }
-//        if (updateDTO.getCutoffPoints() != null) {
-//            program.setCutoffPoints(updateDTO.getCutoffPoints());
-//        }
-//        // Handle categories update
-//        if (updateDTO.getCategoryIds() != null) {
-//            Set<Long> categoryIds = updateDTO.getCategoryIds().stream()
-//                    .map(CategoryIdDTO::getId)
-//                    .collect(Collectors.toSet());
-//            List<Category> categoryList = categoryRepository.findAllById(categoryIds);
-//            program.setCategories(new HashSet<>(categoryList));
-//        }
-//        Program updatedProgram = programRepository.save(program);
-//        return ResponseEntity.ok(updatedProgram);
-//    }
-
-
-
-    @GetMapping("/getProgramById/{id}")
-    public ResponseEntity<Program> getUniversityById(@PathVariable Long id) {
-        return ResponseEntity.ok(programService.getProgramById(id));
     }
 
 
