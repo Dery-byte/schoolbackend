@@ -41,6 +41,9 @@ public class EligibilityUtils {
     public static boolean isAlternative(double percentage) {
         return percentage >= 40.0 && percentage < 60.0;
     }
+
+
+
 }
 
 
