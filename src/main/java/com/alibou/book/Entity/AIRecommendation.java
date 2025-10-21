@@ -43,5 +43,10 @@ public class AIRecommendation {
     @JoinColumn(name = "alternative_program_id")
     private AlternativeProgram alternativeProgram;
 
+    @Column(columnDefinition = "LONGTEXT")
+    private String recommendationText;
+
+    private double confidenceScore;
+
     // constructors, getters, setters
 }
