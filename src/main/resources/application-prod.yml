@@ -25,16 +25,21 @@ spring:
 
   mail:
     host: smtp.gmail.com
-    port: 587
+#    port: 587
+    port: 465
     username: optimusinforservice@gmail.com
     password: dihuojwqwknnsjod
     properties:
       mail:
         smtp:
           auth: true
-          starttls:
+          ssl:
             enable: true
-            required: true
+          socketFactory:
+            class: javax.net.ssl.SSLSocketFactory
+            port: 465
+            transport:
+              protocol: smtp
           connectiontimeout: 5000
           timeout: 5000
           writetimeout: 5000

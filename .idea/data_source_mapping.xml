@@ -3,5 +3,6 @@
   <component name="DataSourcePerFileMappings">
     <file url="das://9616bf45-a7eb-4a37-8afc-f47a8db57534/database/schooldata/schema/dbo/table/program_alternative_subjects.sql" value="9616bf45-a7eb-4a37-8afc-f47a8db57534" />
     <file url="file://$APPLICATION_CONFIG_DIR$/consoles/db/493b0894-8665-45d7-8de7-9cf9facdfaa4/console.sql" value="493b0894-8665-45d7-8de7-9cf9facdfaa4" />
+    <file url="file://$APPLICATION_CONFIG_DIR$/consoles/db/9616bf45-a7eb-4a37-8afc-f47a8db57534/console_1.sql" value="9616bf45-a7eb-4a37-8afc-f47a8db57534" />
   </component>
 </project>
