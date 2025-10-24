@@ -277,29 +277,25 @@ public class AuthenticationService {
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
         sendResetPasswordEmail(user);
     }
-//
-//    public void resetPassword(ResetPasswordRequest request) {
-//        // 1. Find token in database
-//        Token token = tokenRepository.findByToken(request.getToken())
-//                .orElseThrow(() -> new RuntimeException("Invalid token"));
-//
-//        // 2. Validate token (check expiry and usage)
-//        if (LocalDateTime.now().isAfter(token.getExpiresAt())) {
-//            throw new RuntimeException("Token expired");
-//        }
-//        if (token.getValidatedAt() != null) {
-//            throw new RuntimeException("Token already used");
-//        }
-//
-//        // 3. Update user password
-//        User user = token.getUser();
-//        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
-//        userRepository.save(user);
-//
-//        // 4. Invalidate token
-//        token.setValidatedAt(LocalDateTime.now());
-//        tokenRepository.save(token);
-//    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -336,6 +332,8 @@ public class AuthenticationService {
         vars.put("resetUrl", resetUrl);
         vars.put("newToken", newToken);
         vars.put("baseUrl", "http://localhost:4200/");
+        System.out.println(STR."This is the recipient \{user.getFullName()}");
+
 
         emailService.sendEmail(
                 user.getUsername(),

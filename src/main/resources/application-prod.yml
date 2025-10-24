@@ -26,13 +26,16 @@ spring:
   mail:
     host: smtp.gmail.com
 #    port: 587
-    port: 465
+    port: 587
     username: optimusinforservice@gmail.com
     password: dihuojwqwknnsjod
     properties:
       mail:
         smtp:
           auth: true
+          starttls:
+            enable: true
+            required: true
           ssl:
             enable: true
           socketFactory:
