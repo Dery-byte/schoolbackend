@@ -29,7 +29,6 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
@@ -63,7 +62,7 @@ public class AuthenticationService {
 
 
 
-    public void register(RegistrationRequest request) throws MessagingException, UnsupportedEncodingException {
+    public void register(RegistrationRequest request) throws MessagingException {
         var userRole = roleRepository.findByName("USER")
                 // todo - better exception handling
                 .orElseThrow(() -> new IllegalStateException("ROLE USER was not initiated"));
@@ -82,7 +81,7 @@ public class AuthenticationService {
         try {
             userRepository.save(user);
             sendValidationEmail(user);
-        } catch (DataIntegrityViolationException | UnsupportedEncodingException ex) {
+        } catch (DataIntegrityViolationException ex) {
             // Customize based on your DB constraint name (update accordingly)
             if (ex.getMessage() != null && ex.getMessage().contains("UK_nlcolwbx8ujaen5h0u2kr2bn2")) {
                 throw new DuplicateEmailException("An account with this email already exists.");
@@ -187,7 +186,7 @@ public class AuthenticationService {
 
 
     //@Transactional
-    public void activateAccount(String token) throws MessagingException, UnsupportedEncodingException {
+    public void activateAccount(String token) throws MessagingException {
         Token savedToken = tokenRepository.findByToken(token)
                 // todo exception has to be defined
                 .orElseThrow(() -> new RuntimeException("Invalid token"));
@@ -216,7 +215,7 @@ public class AuthenticationService {
         return generatedToken;
     }
 
-    private void sendValidationEmail(User user) throws MessagingException, UnsupportedEncodingException {
+    private void sendValidationEmail(User user) throws MessagingException {
         var newToken = generateAndSaveActivationToken(user);
         String encodedToken = URLEncoder.encode(newToken, StandardCharsets.UTF_8);
 
@@ -273,7 +272,7 @@ public class AuthenticationService {
 
 
 
-    public void forgottenPassword(ForgottenPasswordRequest request) throws MessagingException, UnsupportedEncodingException {
+    public void forgottenPassword(ForgottenPasswordRequest request) throws MessagingException {
         var user = userRepository.findByUsername(request.getEmail())
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
         sendResetPasswordEmail(user);
@@ -321,7 +320,7 @@ public class AuthenticationService {
     }
 
 
-    private void sendResetPasswordEmail(User user) throws MessagingException, UnsupportedEncodingException {
+    private void sendResetPasswordEmail(User user) throws MessagingException {
         var newToken = generateAndSaveResetPasswordToken(user);
 //        String resetUrl = resetURL.replace("resetpassword", "reset-password") + "?token=" + newToken;
         String resetUrl = frontendBaseUrl + "/reset-password?token=" + newToken;
