@@ -22,12 +22,11 @@ spring:
     level:
       org.hibernate.SQL: DEBUG
       org.hibernate.transaction: TRACE
-
   mail:
-    host: smtp.gmail.com
+    host: in-v3.mailjet.com
     port: 587
-    username: optimusinforservice@gmail.com
-    password: dihuojwqwknnsjod
+    username: 33a33b870217cf046c7fca7727f4069d
+    password: 5ccffe88a34b5e9794bca5f32bf9c614
     properties:
       mail:
         smtp:
@@ -45,6 +44,28 @@ spring:
         level:
           org.springframework.mail: DEBUG
           com.alibou.book.email: DEBUG
+#  mail:
+#    host: smtp.gmail.com
+#    port: 587
+#    username: optimusinforservice@gmail.com
+#    password: dihuojwqwknnsjod
+#    properties:
+#      mail:
+#        smtp:
+#          auth: true
+#          starttls:
+#            enable: true
+#            required: true
+#          ssl:
+#            trust: smtp.gmail.com
+#          connectiontimeout: 5000
+#          timeout: 5000
+#          writetimeout: 5000
+#          debug: true
+#      logging:
+#        level:
+#          org.springframework.mail: DEBUG
+#          com.alibou.book.email: DEBUG
   security:
       oauth2:
         client:
