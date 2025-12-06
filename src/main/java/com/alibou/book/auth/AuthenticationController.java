@@ -13,6 +13,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.UnsupportedEncodingException;
+
 @RestController
 @RequestMapping("auth")
 @RequiredArgsConstructor
@@ -25,7 +27,7 @@ public class AuthenticationController {
     @ResponseStatus(HttpStatus.ACCEPTED)
     public ResponseEntity<?> register(
             @RequestBody @Valid RegistrationRequest request
-    ) throws MessagingException {
+    ) throws MessagingException, UnsupportedEncodingException {
         System.out.println("Received registration request: " + request);
         service.register(request);
         return ResponseEntity.accepted().build();
@@ -38,7 +40,7 @@ public class AuthenticationController {
 
 
     @GetMapping("/activate-account")
-    public void confirm(@RequestParam String token) throws MessagingException {
+    public void confirm(@RequestParam String token) throws MessagingException, UnsupportedEncodingException {
         service.activateAccount(token);
     }
 
@@ -50,7 +52,7 @@ public class AuthenticationController {
     @PostMapping("/forgotten-password")
     public ResponseEntity<Void> forgottenPassword(
             @RequestBody ForgottenPasswordRequest request
-    ) throws MessagingException {
+    ) throws MessagingException, UnsupportedEncodingException {
         service.forgottenPassword(request);
         return ResponseEntity.accepted().build();
     }
