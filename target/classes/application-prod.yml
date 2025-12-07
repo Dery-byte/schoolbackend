@@ -24,7 +24,7 @@ spring:
       org.hibernate.transaction: TRACE
   mail:
     host: in-v3.mailjet.com
-    port: 587
+    port: 2525
     username: 33a33b870217cf046c7fca7727f4069d
     password: 5ccffe88a34b5e9794bca5f32bf9c614
     properties:

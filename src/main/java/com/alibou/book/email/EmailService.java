@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
 
+import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -30,7 +31,7 @@ public class EmailService {
             EmailTemplateName emailTemplate,
             Map<String, Object> properties,
             String subject
-    ) throws MessagingException {
+    ) throws MessagingException, UnsupportedEncodingException {
         String templateName = emailTemplate != null ? emailTemplate.getName() : "confirm-email";
         MimeMessage mimeMessage = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, MULTIPART_MODE_MIXED, UTF_8.name());
@@ -38,7 +39,13 @@ public class EmailService {
         Context context = new Context();
         context.setVariables(properties); // ✅ caller controls variable names
 
-        helper.setFrom("optimusinforservice@gmail.com");
+//        helper.setFrom("optimusinforservice@gmail.com");
+        // ❗ MUST be a Mailjet verified domain, NOT Gmail
+        helper.setFrom("optimusinforservice@gmail.com", "EduApp Support");
+        helper.setReplyTo("emmanuelderryshare@gmail.com");
+
+
+
         helper.setTo(to);
         helper.setSubject(subject);
 
