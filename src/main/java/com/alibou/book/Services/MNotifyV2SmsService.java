@@ -33,6 +33,7 @@ public class MNotifyV2SmsService {
             smsRequest.setRecipient(recipients);
             smsRequest.setSender(mNotifyV2Config.getSenderId());
             smsRequest.setMessage(message);
+            smsRequest.getIs_schedule();
 
 
             System.out.println(smsRequest.getMessage());
