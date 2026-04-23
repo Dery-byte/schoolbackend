@@ -1,0 +1,139 @@
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/school
+    username: root
+    password: EMMARESCUE
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        ddl-auto: update  # Options: create, create-drop, update, validate, none
+        format_sql: true
+        default_schema: farm
+    database:
+    database-platform: org.hibernate.dialect.MySQL8Dialect
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: optimusinforservice@gmail.com
+    password: dihuojwqwknnsjod
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+          debug: true
+      logging:
+        level:
+          org.springframework.mail: DEBUG
+          com.alibou.book.email: DEBUG
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: 443880875552-oljn32lv3volpba03caongc7d6babo9o.apps.googleusercontent.com
+            client-secret: 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
+            scope:
+              - openid
+              - profile
+              - email
+#            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"  # ✅ Correct key & location
+            redirect-uri: http://localhost:8088/api/v1/auth/login/oauth2/code/google
+        provider:
+          google:
+            authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
+            token-uri: https://oauth2.googleapis.com/token
+            user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
+            user-name-attribute: sub
+      resourceserver:
+        jwt:
+          issuer-uri: "https://localhost:8080/realms/postgres"
+# JWT validation settings
+jwt:
+  clock-skew: PT5M # 5 minutes tolerance
+application:
+  mailing:
+    frontend:
+      activation-url: http://localhost:4200/activate-account
+      jwk-set-uri: http://localhost:8080/realms/postgres/protocol/openid-connect/certs
+      baseUrl: http://localhost:4200
+
+  security:
+    jwt:
+      secret-key: 19k2m8GRJSBNzJee6zzNWa43JGkoMS9WsB+vfog3OXQ=
+      expiration: 86400000
+
+  file:
+    uploads:
+      photos-output-path: ./uploads
+
+server:
+  port: 8088
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+waec:
+  api:
+    url: https://verify.waecgh.org/api/resultsreq/v3
+    token: cmtncndyZ206UHpxUTJQcURNRg==
+
+moolre:
+  api:
+    url: https://api.moolre.com/open/transact/payment
+  callback:
+    url:  https://8bdd83605986.ngrok-free.app/api/v1/auth/payments/statusWebhook
+  account-number: 10638206043532
+  username: Mudita
+  public-key: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyaWQiOjEwNjM4MiwiZXhwIjoxOTI1MDA5OTk5fQ.TlISuKTOcV_S1WM8LjPeFz9vE_64YNOH6fWKLglq7QY
+  webhook:
+    secret: 6cd824e6-ea05-42f5-bf30-1d63c06b75a8
+
+logging:
+  level:
+    org.springframework.security: DEBUG
+    org.springframework.security.oauth2: DEBUG
+
+mnotify:
+  v2:
+    url: https://api.mnotify.com/api/sms/quick
+    key: oWmpfPGz22BObP6ng9Zjb0Xe4
+    sender-id: OPTUMSERV
+
+price:
+  ranges:
+    step-size: 50.0
+    max-before-plus: 200.0
+  logging:
+  level:
+    org.springframework.security: DEBUG
+
+#GOOGLE GEMINI PROPERTIES
+#google:
+#  gemini:
+#    api:
+#      key: AIzaSyC9uCkkvOIYzV2c2SQwlCy6hGChAEIqWHw
+#      url: https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent
+google:
+  gemini:
+    api:
+      key: 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
+      url: https://api.openai.com/v1/chat/completions
+
+
+openai:
+  api:
+    url: ${OPENAI_API_URL}
+    key: ${OPENAI_API_KEY}

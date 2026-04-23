@@ -1,0 +1,287 @@
+package com.alibou.book.Controllers;
+
+import com.alibou.book.DTO.BulkImportResultDTO;
+import com.alibou.book.DTO.DeleteProgramRequest;
+import com.alibou.book.DTO.ProgramRequestDTO;
+import com.alibou.book.DTO.UpdateProgramDTO;
+import com.alibou.book.Services.ProgramBulkSaveService;
+import com.alibou.book.Entity.Category;
+import com.alibou.book.Entity.Program;
+import com.alibou.book.Entity.SubjectRequirement;
+import com.alibou.book.Entity.University;
+import com.alibou.book.Repositories.CategoryRepository;
+import com.alibou.book.Repositories.ProgramRepository;
+import com.alibou.book.Services.ProgramService;
+import com.alibou.book.Services.UniversityService;
+import com.alibou.book.exception.ResourceNotFoundException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.transaction.Transactional;
+import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.*;
+import java.util.stream.Collectors;
+import com.alibou.book.DTO.CategoryIdDTO;
+
+
+
+@RestController
+@RequestMapping("/auth/programs")
+public class ProgramController {
+
+
+    @Autowired
+    private UniversityService universityService;
+    @Autowired
+    private CategoryRepository categoryRepository;
+
+    @Autowired
+    private  ProgramService programService;
+
+    @Autowired
+    private ProgramRepository programRepository;
+
+    @Autowired
+    private ProgramBulkSaveService programBulkSaveService;
+
+    @PostMapping("/addProgram")
+    @Transactional
+    public ResponseEntity<List<Program>> addProgramToUniversity(@RequestBody ProgramRequestDTO requestDTO) {
+        University university = universityService.getUniversityById(requestDTO.getUniversityId());
+        List<Program> savedPrograms = new ArrayList<>();
+        ObjectMapper mapper = new ObjectMapper();
+        for (ProgramRequestDTO.ProgramWithCategoriesDTO programDTO : requestDTO.getPrograms()) {
+            Program program = new Program();
+            program.setName(programDTO.getName());
+            program.setUniversity(university);
+            // ✅ Core and alternative subjects
+            program.setCoreSubjects(programDTO.getCoreSubjects());
+            program.setAlternativeSubjects(programDTO.getAlternativeSubjects());
+            // ✅ Parse and assign alternativeGroups (if present)
+            if (programDTO.getAlternativeGroups() != null && !programDTO.getAlternativeGroups().isEmpty()) {
+                List<SubjectRequirement> groups = programDTO.getAlternativeGroups().stream().map(dto -> {
+                    SubjectRequirement group = new SubjectRequirement();
+                    group.setRequiredGrade(dto.getRequiredGrade());
+                    group.setAnyOf(dto.isAnyOf());
+                    group.setSubjects(dto.getSubjects()); // this auto-serializes to JSON internally
+                    return group;
+                }).toList();
+                program.setAlternativeGroups(groups);
+            }
+            // ✅ Handle categories
+            if (programDTO.getCategoryIds() != null && !programDTO.getCategoryIds().isEmpty()) {
+                Set<Long> categoryIds = programDTO.getCategoryIds().stream()
+                        .map(CategoryIdDTO::getId)
+                        .collect(Collectors.toSet());
+                List<Category> categoryList = categoryRepository.findAllById(categoryIds);
+                program.setCategories(new HashSet<>(categoryList));
+            }
+            savedPrograms.add(programRepository.save(program));
+        }
+        return ResponseEntity.ok(savedPrograms);
+    }
+
+//    @PostMapping("/addProgram")
+//    @Transactional
+//    public ResponseEntity<List<Program>> addProgramToUniversity(@RequestBody ProgramRequestDTO requestDTO) {
+//        University university = universityService.getUniversityById(requestDTO.getUniversityId());
+//        List<Program> savedPrograms = new ArrayList<>();
+//        for (ProgramRequestDTO.ProgramWithCategoriesDTO programDTO : requestDTO.getPrograms()) {
+//            Program program = new Program();
+//            program.setName(programDTO.getName());
+//            program.setUniversity(university);
+//            // ✅ Set core and alternative subjects with grades
+//            program.setCoreSubjects(programDTO.getCoreSubjects());
+//            program.setAlternativeSubjects(programDTO.getAlternativeSubjects());
+//            // ✅ Optional: cutoff points if applicable
+////            program.setCutoffPoints(programDTO.getCutoffPoints());
+//            // ✅ Handle categories for each program
+//            if (programDTO.getCategoryIds() != null && !programDTO.getCategoryIds().isEmpty()) {
+//                Set<Long> categoryIds = programDTO.getCategoryIds().stream()
+//                        .map(CategoryIdDTO::getId)
+//                        .collect(Collectors.toSet());
+//                List<Category> categoryList = categoryRepository.findAllById(categoryIds);
+//                Set<Category> categories = new HashSet<>(categoryList);
+//                program.setCategories(categories);
+//            }
+//            savedPrograms.add(programRepository.save(program));
+//        }
+//        return ResponseEntity.ok(savedPrograms);
+//    }
+
+
+    /**
+     * Bulk-imports all programs from a validated JSON file (e.g. 11_UCC_VALIDATED.json).
+     * Accepts: { universityId, programs: [{ name, coreSubjects, alternativeSubjects,
+     *             alternativeGroups, categoryIds }] }
+     *
+     * Each program is saved in its own REQUIRES_NEW transaction so a single failure
+     * never rolls back the rest of the batch.
+     * Duplicates (case-insensitive name match against DB + intra-batch) are skipped.
+     */
+    @PostMapping("/bulkImport")
+    public ResponseEntity<BulkImportResultDTO> bulkImport(@RequestBody ProgramRequestDTO requestDTO) {
+        Long universityId = requestDTO.getUniversityId();
+        University university = universityService.getUniversityById(universityId);
+        BulkImportResultDTO result = new BulkImportResultDTO();
+
+        // Pre-load all existing names once (case-insensitive) — avoids N duplicate-check queries
+        Set<String> existingNames = programRepository.findByUniversity(university)
+                .stream()
+                .map(p -> p.getName().trim().toUpperCase())
+                .collect(Collectors.toSet());
+
+        Set<String> batchNames = new HashSet<>();
+
+        for (ProgramRequestDTO.ProgramWithCategoriesDTO dto : requestDTO.getPrograms()) {
+            String programName = dto.getName() == null ? "" : dto.getName().trim();
+            String nameKey = programName.toUpperCase();
+
+            if (existingNames.contains(nameKey) || batchNames.contains(nameKey)) {
+                result.setSkipped(result.getSkipped() + 1);
+                result.getSkippedNames().add(programName);
+                continue;
+            }
+
+            try {
+                // All entity construction (coreSubjects + alternativeSubjects + groups + categories)
+                // happens inside the REQUIRES_NEW transaction — no detached-entity cross-session issues
+                programBulkSaveService.saveSingleProgram(universityId, dto);
+                batchNames.add(nameKey);
+                result.setImported(result.getImported() + 1);
+            } catch (Exception e) {
+                result.setFailed(result.getFailed() + 1);
+                result.getErrors().add(programName + ": " + e.getMessage());
+            }
+        }
+
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/university/{universityId}")
+    public ResponseEntity<List<Program>> getProgramsByUniversity(@PathVariable Long universityId) {
+        University university = universityService.getUniversityById(universityId);
+        return ResponseEntity.ok(programRepository.findByUniversity(university));
+    }
+
+
+
+    @GetMapping("/by-category-name/{categoryName}")
+    public ResponseEntity<List<Program>> getProgramsByCategoryName(
+            @PathVariable String categoryName
+    ) {
+        return ResponseEntity.ok(programService.getProgramsByCategoryName(categoryName));
+    }
+
+    @GetMapping("/by-category/{categoryId}")
+    public ResponseEntity<List<Program>> getProgramsByCategoryId(
+            @PathVariable Long categoryId
+    ) {
+        return ResponseEntity.ok(programService.getProgramsByCategoryId(categoryId));
+    }
+
+
+    @DeleteMapping("/deleteById")
+    public ResponseEntity<?> deleteProgram(@RequestBody DeleteProgramRequest request) {
+        try {
+            programService.deleteProgram(request.getProgramId());
+            return ResponseEntity.ok().build();
+        } catch (ResourceNotFoundException ex) {
+            return ResponseEntity.notFound().build();
+        } catch (Exception ex) {
+            return ResponseEntity.internalServerError()
+                    .body("Error deleting program: " + ex.getMessage());
+        }
+    }
+
+
+//
+//
+//
+//    @PutMapping("/updateProgram")
+//    @Transactional
+//    public ResponseEntity<Program> updateProgram(@Valid @RequestBody UpdateProgramDTO updateDTO) {
+//        Program program = programRepository.findById(updateDTO.getProgramId())
+//                .orElseThrow(() -> new ResourceNotFoundException(
+//                        "Program not found with id: " + updateDTO.getProgramId()));
+//        // Update basic and map-based fields
+//        Optional.ofNullable(updateDTO.getName()).ifPresent(program::setName);
+////        Optional.ofNullable(updateDTO.getCutoffPoints()).ifPresent(program::setCutoffPoints);
+//        Optional.ofNullable(updateDTO.getCoreSubjects()).ifPresent(program::setCoreSubjects);
+//        Optional.ofNullable(updateDTO.getAlternativeSubjects()).ifPresent(program::setAlternativeSubjects);
+//        // Handle categories
+//        updateCategories(program, updateDTO.getCategoryIds());
+//        Program updatedProgram = programRepository.save(program);
+//        return ResponseEntity.ok(updatedProgram);
+//    }
+//
+//    private void updateCategories(Program program, Collection<CategoryIdDTO> categoryIds) {
+//        if (categoryIds != null && !categoryIds.isEmpty()) {
+//            Set<Long> ids = categoryIds.stream()
+//                    .map(CategoryIdDTO::getId)
+//                    .collect(Collectors.toSet());
+//            List<Category> categories = categoryRepository.findAllById(ids);
+//            program.setCategories(new HashSet<>(categories));
+//        }
+//    }
+//
+//
+//
+
+
+
+@PutMapping("/updateProgram")
+@Transactional
+public ResponseEntity<Program> updateProgram(@Valid @RequestBody UpdateProgramDTO updateDTO) {
+    Program program = programRepository.findById(updateDTO.getProgramId())
+            .orElseThrow(() -> new ResourceNotFoundException(
+                    "Program not found with id: " + updateDTO.getProgramId()));
+
+    // ✅ Update basic fields
+    Optional.ofNullable(updateDTO.getName()).ifPresent(program::setName);
+    Optional.ofNullable(updateDTO.getCoreSubjects()).ifPresent(program::setCoreSubjects);
+    Optional.ofNullable(updateDTO.getAlternativeSubjects()).ifPresent(program::setAlternativeSubjects);
+
+    // ✅ Update categories
+    updateCategories(program, updateDTO.getCategoryIds());
+
+    // ✅ Update alternative groups (this is the new part)
+    if (updateDTO.getAlternativeGroups() != null) {
+        List<SubjectRequirement> updatedGroups = updateDTO.getAlternativeGroups().stream()
+                .map(dto -> {
+                    SubjectRequirement group = new SubjectRequirement();
+                    group.setRequiredGrade(dto.getRequiredGrade());
+                    group.setAnyOf(dto.isAnyOf());
+                    group.setSubjects(dto.getSubjects() != null ? dto.getSubjects() : List.of());
+                    return group;
+                })
+                .collect(Collectors.toList());
+        program.setAlternativeGroups(updatedGroups);
+    }
+
+    // ✅ Save and return updated program
+    Program updatedProgram = programRepository.save(program);
+    return ResponseEntity.ok(updatedProgram);
+}
+
+
+
+    @GetMapping("/getProgramById/{id}")
+    public ResponseEntity<Program> getUniversityById(@PathVariable Long id) {
+        return ResponseEntity.ok(programService.getProgramById(id));
+    }
+
+    private void updateCategories(Program program, Collection<CategoryIdDTO> categoryIds) {
+        if (categoryIds != null && !categoryIds.isEmpty()) {
+            Set<Long> ids = categoryIds.stream()
+                    .map(CategoryIdDTO::getId)
+                    .collect(Collectors.toSet());
+            List<Category> categories = categoryRepository.findAllById(ids);
+            program.setCategories(new HashSet<>(categories));
+        }
+    }
+
+
+}

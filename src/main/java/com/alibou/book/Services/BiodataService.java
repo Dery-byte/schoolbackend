@@ -1,0 +1,237 @@
+package com.alibou.book.Services;
+
+import com.alibou.book.DTO.BiodataResponse;
+import com.alibou.book.DTO.Projections.RegionStatsDTO;
+import com.alibou.book.DTO.Projections.RegionStatsResponse;
+import com.alibou.book.Entity.Biodata;
+import com.alibou.book.Entity.GhanaRegion;
+import com.alibou.book.Repositories.BiodataRepository;
+import com.alibou.book.exception.BiodataNotFoundException;
+import com.alibou.book.exception.DuplicateEmailException;
+import com.alibou.book.exception.InvalidAgeException;
+import com.alibou.book.mappers.BiodataMapper;
+import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+@Transactional
+public class BiodataService {
+
+    private final BiodataRepository biodataRepository;
+    private static final int MINIMUM_AGE = 16;
+
+    // ========== PUBLIC CRUD METHODS ========== //
+
+    /**
+     * Creates new biodata after validation
+     */
+//    public Biodata createBiodata(Biodata biodata) {
+//        validateBiodataForCreation(biodata);
+//        return biodataRepository.save(biodata);
+//    }
+
+
+
+    public Biodata createBiodata(Biodata biodata) {
+        validateBiodataForCreation(biodata);
+
+        try {
+            return biodataRepository.save(biodata);
+        } catch (DataIntegrityViolationException ex) {
+            System.out.println("DataIntegrityViolationException caught!");
+            System.out.println("Exception type: " + ex.getClass().getName());
+            System.out.println("Exception message: " + ex.getMessage());
+            System.out.println("Biodata email: " + biodata.getEmail());
+
+            String email = biodata.getEmail() != null ? biodata.getEmail() : "unknown";
+            throw new DuplicateEmailException("Email already exists: " + email);
+        } catch (Exception ex) {
+            System.out.println("Other exception caught: " + ex.getClass().getName());
+            System.out.println("Message: " + ex.getMessage());
+            throw ex; // Re-throw to see what's actually being caught
+        }
+    }
+
+
+
+
+
+
+    /**
+     * Retrieves biodata by ID or throws exception if not found
+     */
+    public Biodata getBiodataById(Integer id) {
+        return biodataRepository.findById(id)
+                .orElseThrow(() -> new BiodataNotFoundException("Biodata not found with id: " + id));
+    }
+
+    /**
+     * Retrieves all biodata records
+     */
+    public List<Biodata> getAllBiodata() {
+        return biodataRepository.findAll();
+    }
+
+    /**
+     * Updates existing biodata with partial updates
+     */
+    public Biodata updateBiodata(Integer id, Biodata updatedBiodata) {
+        Biodata existingBiodata = getExistingBiodata(id);
+        applyUpdates(existingBiodata, updatedBiodata);
+        validateBiodataForUpdate(existingBiodata);
+        return biodataRepository.save(existingBiodata);
+    }
+
+    /**
+     * Deletes biodata by ID
+     */
+    public void deleteBiodata(Integer id) {
+        if (!biodataRepository.existsById(id)) {
+            throw new BiodataNotFoundException("Biodata not found with id: " + id);
+        }
+        biodataRepository.deleteById(id);
+    }
+
+    // ========== PUBLIC QUERY METHODS ========== //
+
+    /**
+     * Finds biodata by email or throws exception if not found
+     */
+    public Biodata findByEmail(String email) {
+        return biodataRepository.findByEmail(email)
+                .orElseThrow(() -> new BiodataNotFoundException("Biodata not found with email: " + email));
+    }
+
+    /**
+     * Checks if email exists in the system
+     */
+    public boolean emailExists(String email) {
+        return biodataRepository.existsByEmail(email);
+    }
+
+    // ========== PRIVATE VALIDATION METHODS ========== //
+
+    private void validateBiodataForCreation(Biodata biodata) {
+        validateAge(biodata.getDob());
+        validateEmailUniqueness(biodata.getEmail());
+    }
+
+    private void validateBiodataForUpdate(Biodata biodata) {
+        validateAge(biodata.getDob());
+        // Additional update-specific validation can go here
+    }
+
+    private void validateAge(LocalDate dob) {
+        if (dob != null && dob.isAfter(LocalDate.now().minusYears(MINIMUM_AGE))) {
+            throw new InvalidAgeException("Person must be at least " + MINIMUM_AGE + " years old");
+        }
+    }
+
+//    private void validateEmailUniqueness(String email) {
+//        if (emailExists(email)) {
+//            throw new DuplicateEmailException("Email already exists: " + email);
+//        }
+//    }
+
+
+
+    private void validateEmailUniqueness(String email) {
+//        System.out.println("=== EMAIL VALIDATION DEBUG ===");
+//        System.out.println("Input email: '" + email + "'");
+//        System.out.println("Email is null: " + (email == null));
+
+        boolean exists = emailExists(email);
+//        System.out.println("Email exists: " + exists);
+
+        if (exists) {
+            String message = email + " already exists. ";
+//            System.out.println("Creating exception with message: '" + message + "'");
+            DuplicateEmailException exception = new DuplicateEmailException(message);
+//            System.out.println("Exception getMessage(): '" + exception.getMessage() + "'");
+//            System.out.println("================================");
+            throw exception;
+        }
+        System.out.println("Validation passed");
+        System.out.println("================================");
+    }
+
+
+    // ========== PRIVATE HELPER METHODS ========== //
+
+    private Biodata getExistingBiodata(Integer id) {
+        return biodataRepository.findById(id)
+                .orElseThrow(() -> new BiodataNotFoundException("Biodata not found with id: " + id));
+    }
+
+    private void applyUpdates(Biodata target, Biodata source) {
+        if (source.getFirstName() != null) target.setFirstName(source.getFirstName());
+        if (source.getLastName() != null) target.setLastName(source.getLastName());
+        if (source.getEmail() != null) target.setEmail(source.getEmail());
+        if (source.getPhoneNumber() != null) target.setPhoneNumber(source.getPhoneNumber());
+        if (source.getAddress() != null) target.setAddress(source.getAddress());
+        if (source.getDob() != null) target.setDob(source.getDob());
+        if(source.getMiddleName() !=null) target.setMiddleName(source.getMiddleName());
+        if(source.getGender() !=null) target.setGender(source.getGender());
+        if(source.getRegion() !=null) target.setRegion(source.getRegion());
+
+
+        // Add record update if needed
+        if (source.getRecord() != null) target.setRecord(source.getRecord());
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+    @Transactional(readOnly = true)
+    public BiodataResponse getBiodataByRecordId(String recordId) {
+        Biodata biodata = biodataRepository.findByRecordId(recordId)
+                .orElseThrow(() -> new BiodataNotFoundException("Record ID: " + recordId));
+        return BiodataMapper.toResponse(biodata);
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+    public List<GhanaRegion> getAllRegions() {
+        return Arrays.asList(GhanaRegion.values());
+    }
+
+    public RegionStatsResponse getRegionStatistics() {
+        long totalBiodata = biodataRepository.count();
+        var regionCounts = biodataRepository.countBiodataByRegion();
+
+        var stats = regionCounts.stream()
+                .map(rc -> new RegionStatsDTO(
+                        rc.getRegion().getDisplayName(),
+                        rc.getCount(),
+                        totalBiodata > 0 ? (rc.getCount() * 100.0 / totalBiodata) : 0
+                ))
+                .collect(Collectors.toList());
+
+        return new RegionStatsResponse(totalBiodata, stats);
+    }
+}

@@ -1,0 +1,69 @@
+package com.alibou.book.Entity;
+import com.alibou.book.user.User;
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.persistence.*;
+import lombok.*;
+import java.time.Instant;
+
+@Entity
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class ExamCheckRecord {
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID) // Java 17+ UUID generation
+    private String id;
+
+//    private String userId;
+
+    private String candidateName;
+    @Enumerated(EnumType.STRING)
+    private PaymentStatus paymentStatus;     // e.g., "paid", "pending"
+
+    @Enumerated(EnumType.STRING)
+    private SubscriptionType subscriptionType;
+
+    private  String pendingSubscriptionType;
+
+    @Enumerated(EnumType.STRING) // Store enum name as String in DB
+    private CheckStatus checkStatus;       // e.g., "completed", "not_started"
+    private Instant createdAt;
+    private Instant lastUpdated;
+    private int checkLimit = 0;
+
+
+
+//    @Embedded
+//    private ExamDetails examDetails;
+@Column(unique = true)  // Ensures one payment reference per record
+private String externalRef;  // Matches PaymentStatuss.externalRef
+
+    @Column(name = "session_id")
+    private String sessionId;
+
+    @Column(name = "temporary", nullable = false)
+    private Boolean temporary = false;
+
+    @Column(name = "payment_reference")
+    private String paymentReference;
+
+    @OneToOne(cascade = CascadeType.ALL)
+    private WaecCandidateEntity waecCandidateEntity;
+
+
+    @OneToOne(mappedBy = "record", cascade = CascadeType.ALL)
+    @JsonBackReference  // This side won't be serialized
+    private Biodata biodata;  // Bidirectional reference
+
+
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
+
+
+}

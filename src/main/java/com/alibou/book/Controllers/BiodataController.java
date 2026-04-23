@@ -1,0 +1,132 @@
+package com.alibou.book.Controllers;
+
+import com.alibou.book.DTO.BiodataDTO;
+import com.alibou.book.DTO.BiodataResponse;
+import com.alibou.book.DTO.Projections.RegionStatsResponse;
+import com.alibou.book.Entity.Biodata;
+import com.alibou.book.Entity.GhanaRegion;
+import com.alibou.book.Services.BiodataService;
+import com.alibou.book.exception.DuplicateEmailException;
+import com.alibou.book.exception.InvalidAgeException;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/auth/biodata")
+@RequiredArgsConstructor
+public class BiodataController {
+
+    private final BiodataService biodataService;
+
+    @PostMapping("/addBiodata")
+    public ResponseEntity<Biodata> createBiodata(@Valid @RequestBody Biodata biodata) {
+        // No try-catch - let exception bubble up
+        Biodata savedBiodata = biodataService.createBiodata(biodata);
+        return new ResponseEntity<>(savedBiodata, HttpStatus.CREATED);
+    }
+
+//    @PostMapping("/addBiodata")
+//    public ResponseEntity<?> createBiodata(@Valid @RequestBody Biodata biodata) {
+//        try {
+//            Biodata savedBiodata = biodataService.createBiodata(biodata);
+//            return new ResponseEntity<>(savedBiodata, HttpStatus.CREATED);
+//        } catch (DuplicateEmailException ex) {
+//            // Create error response object
+//            Map<String, Object> errorResponse = new HashMap<>();
+//            errorResponse.put("timestamp", LocalDateTime.now());
+//            errorResponse.put("status", HttpStatus.CONFLICT.value());
+//            errorResponse.put("error", "Duplicate Email");
+//            errorResponse.put("message", ex.getMessage()); // This will contain your actual error message
+//
+//            return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+//        }
+//        // InvalidAgeException is handled by GlobalExceptionHandler - no need to catch here
+//    }
+
+
+    @GetMapping("/{id}")
+    public ResponseEntity<BiodataDTO> getBiodataById(@PathVariable Integer id) {
+        Biodata biodata = biodataService.getBiodataById(id);
+        return ResponseEntity.ok(BiodataDTO.fromEntity(biodata));
+    }
+
+    @GetMapping("/getAll")
+    public ResponseEntity<List<BiodataDTO>> getAllBiodata() {
+        List<BiodataDTO> dtos = biodataService.getAllBiodata()
+                .stream()
+                .map(BiodataDTO::fromEntity)
+                .toList();
+        return ResponseEntity.ok(dtos);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Biodata> updateBiodata(
+            @PathVariable Integer id,
+            @Valid @RequestBody Biodata updatedBiodata
+    ) {
+        return ResponseEntity.ok(biodataService.updateBiodata(id, updatedBiodata));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteBiodata(@PathVariable Integer id) {
+        biodataService.deleteBiodata(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<Biodata> findByEmail(@RequestParam String email) {
+        return ResponseEntity.ok(biodataService.findByEmail(email));
+    }
+
+
+
+    @GetMapping("/byrecordId/{recordId}")
+    public ResponseEntity<BiodataResponse> getBiodataByRecordId(
+            @PathVariable String recordId) {
+        BiodataResponse response = biodataService.getBiodataByRecordId(recordId);
+        return ResponseEntity.ok(response);
+    }
+
+
+
+
+
+
+    @PutMapping("/updateBiodata")
+    public ResponseEntity<Biodata> updateBiodata(
+            @Valid @RequestBody Biodata updatedBiodata
+    ) {
+        if (updatedBiodata.getId() == null) {
+            throw new IllegalArgumentException("Biodata ID must be provided in the request body");
+        }
+        Biodata updated = biodataService.updateBiodata(updatedBiodata.getId(), updatedBiodata);
+        return ResponseEntity.ok(updated);
+    }
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(IllegalArgumentException.class)
+    public Map<String, String> handleIllegalArgument(IllegalArgumentException ex) {
+        Map<String, String> errorResponse = new HashMap<>();
+        errorResponse.put("error", ex.getMessage());
+        return errorResponse;
+    }
+
+
+
+    @GetMapping("/getAllRegions")
+    public ResponseEntity<List<GhanaRegion>> getAllRegions() {
+        return ResponseEntity.ok(biodataService.getAllRegions());
+    }
+
+    @GetMapping("/stats")
+    public ResponseEntity<RegionStatsResponse> getRegionStatistics() {
+        return ResponseEntity.ok(biodataService.getRegionStatistics());
+    }
+}

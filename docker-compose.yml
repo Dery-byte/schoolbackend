@@ -1,0 +1,45 @@
+
+version: '3.8'
+services:
+  maildev:
+    image: maildev/maildev
+    container_name: maildev
+    restart: always
+    ports:
+      - "1080:1080" # Web UI
+      - "1025:1025" # SMTP server
+    environment:
+      - MAILDEV_WEB_PORT=1080
+      - MAILDEV_SMTP_PORT=1025
+  # PostgreSQL Database for Keycloak
+  keycloak-db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - keycloak_db_data:/var/lib/postgresql/data
+    networks:
+      - book-network
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: password
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    command: start-dev
+    ports:
+      - "8080:8080"
+    depends_on:
+      - keycloak-db
+    networks:
+      - book-network
+networks:
+  book-network:
+    driver: bridge
+volumes:
+  keycloak_db_data: { }
