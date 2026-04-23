@@ -131,8 +131,6 @@ google:
     api:
       key: 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
       url: https://api.openai.com/v1/chat/completions
-
-
 openai:
   api:
     url: ${OPENAI_API_URL}

@@ -252,9 +252,6 @@ openai:
   api:
     url: ${OPENAI_API_URL}
     key: ${OPENAI_API_KEY}
-
-
-
 google:
   gemini:
     api:
