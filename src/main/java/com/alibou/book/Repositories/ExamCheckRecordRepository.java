@@ -1,9 +1,11 @@
 package com.alibou.book.Repositories;
 
 
+import com.alibou.book.Entity.CheckStatus;
 import com.alibou.book.Entity.ExamCheckRecord;
 import com.alibou.book.Entity.PaymentStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -53,7 +55,9 @@ public interface ExamCheckRecordRepository extends JpaRepository<ExamCheckRecord
     List<Object[]> getMonthlyExamCheckRecords(@Param("year") int year);
 
 
-
+    @Modifying
+    @Query("UPDATE ExamCheckRecord e SET e.checkStatus = :status WHERE e.id = :id")
+    void updateCheckStatus(@Param("id") String id, @Param("status") CheckStatus status);
 
 
 }

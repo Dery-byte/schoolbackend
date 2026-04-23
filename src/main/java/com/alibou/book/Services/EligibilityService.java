@@ -187,8 +187,9 @@ public class EligibilityService {
                 .collect(Collectors.toList());
 
         record.setUniversities(universityEligibilities);
-        examRecord.setCheckStatus(CheckStatus.CHECKED);
-        examCheckRecordRepository.save(examRecord);
+//        examRecord.setCheckStatus(CheckStatus.CHECKED);
+//        examCheckRecordRepository.save(examRecord);
+        examCheckRecordRepository.updateCheckStatus(checkExamRecordId, CheckStatus.CHECKED);
 
         return eligibilityRecordRepository.save(record);
     }

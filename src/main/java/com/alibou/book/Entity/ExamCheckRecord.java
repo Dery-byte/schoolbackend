@@ -50,10 +50,14 @@ private String externalRef;  // Matches PaymentStatuss.externalRef
 
     @Column(name = "payment_reference")
     private String paymentReference;
-
+//
     @OneToOne(cascade = CascadeType.ALL)
     private WaecCandidateEntity waecCandidateEntity;
 
+    // In ExamCheckRecord entity
+//    @ManyToOne(fetch = FetchType.LAZY, cascade = {CascadeType.DETACH, CascadeType.REFRESH})
+//    @JoinColumn(name = "waec_candidate_entity_id")
+//    private WaecCandidateEntity waecCandidateEntity;
 
     @OneToOne(mappedBy = "record", cascade = CascadeType.ALL)
     @JsonBackReference  // This side won't be serialized
