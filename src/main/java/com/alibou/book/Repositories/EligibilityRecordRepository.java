@@ -2,11 +2,13 @@ package com.alibou.book.Repositories;
 
 import com.alibou.book.DTO.EligibilityMonthlySummary;
 import com.alibou.book.Entity.EligibilityRecord;
+import com.alibou.book.Entity.ExamCheckRecord;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface EligibilityRecordRepository extends JpaRepository<EligibilityRecord, String> {
     List<EligibilityRecord> findByUserId(String userId);
@@ -55,7 +57,9 @@ public interface EligibilityRecordRepository extends JpaRepository<EligibilityRe
         ORDER BY MONTH(er.createdAt)
         """)
         List<EligibilityMonthlySummary> getMonthlyStats(@Param("year") int year);
-    }
+
+    Optional<EligibilityRecord> findByExamCheckRecord(ExamCheckRecord examCheckRecord);
+}
 
 
 

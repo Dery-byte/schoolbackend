@@ -159,41 +159,121 @@ public class EligibilityService {
 
         return universities;
     }
+//
+//    private EligibilityRecord persistEligibilityResults(
+//            String userId,
+//            String checkExamRecordId,
+//            List<Long> categoryIds,
+//            Set<University> universities,
+//            Map<University, List<ProgramEvaluationResult>> eligiblePrograms,
+//            Map<University, List<ProgramEvaluationResult>> alternativePrograms,
+//            List<ProgramEvaluationResult> allResults) {
+//
+//        ExamCheckRecord examRecord = examCheckRecordRepository.findById(checkExamRecordId)
+//                .orElseThrow(() -> new EntityNotFoundException("ExamCheckRecord not found: " + checkExamRecordId));
+//
+//        List<Category> categories = categoryRepository.findAllById(categoryIds);
+//
+//        EligibilityRecord record = new EligibilityRecord();
+//        record.setId(UUID.randomUUID().toString());
+//        record.setUserId(userId);
+//        record.setExamCheckRecord(examRecord);
+//        record.setCreatedAt(LocalDateTime.now(ZoneId.of("Africa/Accra")));
+//        record.setSelectedCategories(categories.stream().map(Category::getName).toList());
+//
+//        List<UniversityEligibility> universityEligibilities = universities.stream()
+//                .map(uni -> buildUniversityEligibility(
+//                        uni, eligiblePrograms, alternativePrograms, allResults, record, userId))
+//                .collect(Collectors.toList());
+//
+//        record.setUniversities(universityEligibilities);
+////        examRecord.setCheckStatus(CheckStatus.CHECKED);
+////        examCheckRecordRepository.save(examRecord);
+//        examCheckRecordRepository.updateCheckStatus(checkExamRecordId, CheckStatus.CHECKED);
+//
+//        return eligibilityRecordRepository.save(record);
+//    }
 
-    private EligibilityRecord persistEligibilityResults(
-            String userId,
-            String checkExamRecordId,
-            List<Long> categoryIds,
-            Set<University> universities,
-            Map<University, List<ProgramEvaluationResult>> eligiblePrograms,
-            Map<University, List<ProgramEvaluationResult>> alternativePrograms,
-            List<ProgramEvaluationResult> allResults) {
 
-        ExamCheckRecord examRecord = examCheckRecordRepository.findById(checkExamRecordId)
-                .orElseThrow(() -> new EntityNotFoundException("ExamCheckRecord not found: " + checkExamRecordId));
+private EligibilityRecord persistEligibilityResults(
+        String userId,
+        String checkExamRecordId,
+        List<Long> categoryIds,
+        Set<University> universities,
+        Map<University, List<ProgramEvaluationResult>> eligiblePrograms,
+        Map<University, List<ProgramEvaluationResult>> alternativePrograms,
+        List<ProgramEvaluationResult> allResults) {
 
-        List<Category> categories = categoryRepository.findAllById(categoryIds);
+    log.info("📥 persistEligibilityResults called | userId={} | examRecordId={} | universities={} | categories={}",
+            userId, checkExamRecordId, universities.size(), categoryIds);
 
-        EligibilityRecord record = new EligibilityRecord();
-        record.setId(UUID.randomUUID().toString());
-        record.setUserId(userId);
-        record.setExamCheckRecord(examRecord);
-        record.setCreatedAt(LocalDateTime.now(ZoneId.of("Africa/Accra")));
-        record.setSelectedCategories(categories.stream().map(Category::getName).toList());
+    ExamCheckRecord examRecord = examCheckRecordRepository.findById(checkExamRecordId)
+            .orElseThrow(() -> {
+                log.error("❌ ExamCheckRecord not found for id={}", checkExamRecordId);
+                return new EntityNotFoundException("ExamCheckRecord not found: " + checkExamRecordId);
+            });
 
-        List<UniversityEligibility> universityEligibilities = universities.stream()
-                .map(uni -> buildUniversityEligibility(
-                        uni, eligiblePrograms, alternativePrograms, allResults, record, userId))
-                .collect(Collectors.toList());
+    log.debug("📋 ExamCheckRecord fetched | id={} | currentStatus={} | userId={}",
+            examRecord.getId(), examRecord.getCheckStatus(), examRecord.getUser());
 
-        record.setUniversities(universityEligibilities);
-//        examRecord.setCheckStatus(CheckStatus.CHECKED);
-//        examCheckRecordRepository.save(examRecord);
-        examCheckRecordRepository.updateCheckStatus(checkExamRecordId, CheckStatus.CHECKED);
-
-        return eligibilityRecordRepository.save(record);
+    // Guard against duplicate processing
+    if (CheckStatus.CHECKED.equals(examRecord.getCheckStatus())) {
+        log.warn("⚠️ Duplicate request detected — examRecord {} is already CHECKED. Returning existing eligibility record.", checkExamRecordId);
+        return eligibilityRecordRepository.findByExamCheckRecord(examRecord)
+                .orElseThrow(() -> {
+                    log.error("❌ ExamRecord {} is CHECKED but no EligibilityRecord found — data inconsistency!", checkExamRecordId);
+                    return new EntityNotFoundException("Existing eligibility record not found for examRecord: " + checkExamRecordId);
+                });
     }
 
+    List<Category> categories = categoryRepository.findAllById(categoryIds);
+    log.debug("📂 Fetched {} categories for ids={}", categories.size(), categoryIds);
+
+    if (categories.isEmpty()) {
+        log.error("❌ No categories found for ids={}", categoryIds);
+        throw new EligibilityException("No valid categories found for provided ids");
+    }
+
+    EligibilityRecord record = new EligibilityRecord();
+    record.setId(UUID.randomUUID().toString());
+    record.setUserId(userId);
+    record.setExamCheckRecord(examRecord);
+    record.setCreatedAt(LocalDateTime.now(ZoneId.of("Africa/Accra")));
+    record.setSelectedCategories(categories.stream().map(Category::getName).toList());
+
+    log.debug("🆕 EligibilityRecord created | id={} | userId={} | createdAt={}",
+            record.getId(), record.getUserId(), record.getCreatedAt());
+
+    List<UniversityEligibility> universityEligibilities = universities.stream()
+            .map(uni -> {
+                log.debug("🏫 Building eligibility for university={} | type={}",
+                        uni.getName(), uni.getType());
+                return buildUniversityEligibility(
+                        uni, eligiblePrograms, alternativePrograms, allResults, record, userId);
+            })
+            .collect(Collectors.toList());
+
+    log.info("✅ Built eligibility for {} universities", universityEligibilities.size());
+    record.setUniversities(universityEligibilities);
+
+    try {
+        log.debug("🔄 Updating examRecord status to CHECKED | id={}", checkExamRecordId);
+        examCheckRecordRepository.updateCheckStatus(checkExamRecordId, CheckStatus.CHECKED);
+        log.info("✅ ExamCheckRecord status updated to CHECKED | id={}", checkExamRecordId);
+    } catch (Exception e) {
+        log.error("❌ Failed to update CheckStatus for examRecordId={} | error={}", checkExamRecordId, e.getMessage(), e);
+        throw e;
+    }
+
+    try {
+        EligibilityRecord saved = eligibilityRecordRepository.save(record);
+        log.info("💾 EligibilityRecord saved successfully | id={} | universities={}", saved.getId(), universityEligibilities.size());
+        return saved;
+    } catch (Exception e) {
+        log.error("❌ Failed to save EligibilityRecord | examRecordId={} | error={}", checkExamRecordId, e.getMessage(), e);
+        throw e;
+    }
+}
     private UniversityEligibility buildUniversityEligibility(
             University university,
             Map<University, List<ProgramEvaluationResult>> eligiblePrograms,
