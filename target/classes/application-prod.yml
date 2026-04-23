@@ -181,11 +181,9 @@ spring:
             token-uri: https://oauth2.googleapis.com/token
             user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
             user-name-attribute: sub
-
     resourceserver:
       jwt:
         issuer-uri: https://localhost:8080/realms/postgres
-
 
 application:
   mailing:
@@ -193,7 +191,6 @@ application:
       activation-url: https://schoolfrontend-rho.vercel.app
       jwk-set-uri: https://schoolbackend-j5n9.onrender.com/realms/postgres/protocol/openid-connect/certs
       baseUrl: https://schoolfrontend-rho.vercel.app/
-
   security:
     jwt:
       secret-key: VGhpcy1pcy1hLXByb3Blcmx5LXNlY3VyZS0zMi1ieXRlLWtleS0yMDI2
@@ -202,25 +199,17 @@ application:
   file:
     uploads:
       photos-output-path: ./uploads
-
-
 server:
   port: 8088
-
-
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
   api-docs:
     path: /v3/api-docs
-
-
 waec:
   api:
     url: https://verify.waecgh.org/api/resultsreq/v3
     token: cmtncndyZ206UHpxUTJQcURNRg==
-
-
 moolre:
   api:
     url: https://api.moolre.com/open/transact/payment
@@ -232,7 +221,6 @@ moolre:
   webhook:
     secret: 6cd824e6-ea05-42f5-bf30-1d63c06b75a8
 
-
 logging:
   level:
     org.hibernate.SQL: DEBUG
@@ -240,15 +228,15 @@ logging:
     org.springframework.mail: DEBUG
     com.alibou.book.email: DEBUG
     com.exam: DEBUG
-
-
 mnotify:
   v2:
     url: https://api.mnotify.com/api/sms/quick
     key: oWmpfPGz22BObP6ng9Zjb0Xe4
     sender-id: OPTUMSERV
-
-
+openai:
+  api:
+    url: ${OPENAI_API_URL}
+    key: ${OPENAI_API_KEY}
 google:
   gemini:
     api:

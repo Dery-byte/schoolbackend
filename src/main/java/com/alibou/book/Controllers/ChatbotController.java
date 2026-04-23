@@ -24,7 +24,6 @@ import java.util.Map;
 public class ChatbotController {
 
     private static final Logger log = LoggerFactory.getLogger(ChatbotController.class);
-
     @Value("${openai.api.url}")
     private String openAiUrl;
 
