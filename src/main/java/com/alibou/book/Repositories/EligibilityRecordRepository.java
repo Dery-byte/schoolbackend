@@ -4,6 +4,7 @@ import com.alibou.book.DTO.EligibilityMonthlySummary;
 import com.alibou.book.Entity.EligibilityRecord;
 import com.alibou.book.Entity.ExamCheckRecord;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -12,6 +13,8 @@ import java.util.Optional;
 
 public interface EligibilityRecordRepository extends JpaRepository<EligibilityRecord, String> {
     List<EligibilityRecord> findByUserId(String userId);
+
+    List<EligibilityRecord> findByUserIdOrderByCreatedAtDesc(String userId);
 
     java.util.Optional<EligibilityRecord> findBySessionId(String sessionId);
 
@@ -59,6 +62,10 @@ public interface EligibilityRecordRepository extends JpaRepository<EligibilityRe
         List<EligibilityMonthlySummary> getMonthlyStats(@Param("year") int year);
 
     Optional<EligibilityRecord> findByExamCheckRecord(ExamCheckRecord examCheckRecord);
+
+    @Modifying
+    @Query("UPDATE EligibilityRecord er SET er.sessionId = :sid, er.temporary = true, er.paymentReference = :ref WHERE er.id = :id")
+    void tagAsTemporary(@Param("id") String id, @Param("sid") String sid, @Param("ref") String ref);
 }
 
 

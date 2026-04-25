@@ -60,8 +60,9 @@ public class EligibilityService {
         Map<String, String> candidateGrades = normalizeCandidateGrades(candidate);
         log.debug("Normalized candidate subjects: {}", candidateGrades);
 
-        // 3. Fetch programs from categories
+        // 3. Fetch programs from categories (single batch query) + resolve category names
         Set<Program> programs = fetchProgramsFromCategories(userSelectedCategoryIds);
+        List<String> categoryNames = categoryRepository.findNamesByIds(userSelectedCategoryIds);
 
         // 4. Evaluate all programs
         List<ProgramEvaluationResult> evaluationResults = programs.stream()
@@ -81,7 +82,7 @@ public class EligibilityService {
 
         // 7. Persist results
         EligibilityRecord record = persistEligibilityResults(
-                userId, checkExamRecordId, userSelectedCategoryIds,
+                userId, checkExamRecordId, categoryNames,
                 universities, eligiblePrograms, alternativePrograms, evaluationResults);
 
         log.info("✅ Eligibility check completed for candidate: {}", candidate.getCname());
@@ -119,14 +120,14 @@ public class EligibilityService {
     }
 
     private Set<Program> fetchProgramsFromCategories(List<Long> categoryIds) {
-        List<Category> categories = categoryRepository.findAllById(categoryIds);
-        if (categories.isEmpty()) {
+        if (categoryIds == null || categoryIds.isEmpty()) {
             throw new EligibilityException("No valid categories found");
         }
-
-        return categories.stream()
-                .flatMap(c -> programRepository.findByCategories_Id(c.getId()).stream())
-                .collect(Collectors.toSet());
+        Set<Program> programs = new HashSet<>(programRepository.findDistinctByCategoryIds(categoryIds));
+        if (programs.isEmpty()) {
+            throw new EligibilityException("No programs found for selected categories");
+        }
+        return programs;
     }
 
     private Map<University, List<ProgramEvaluationResult>> categorizePrograms(
@@ -198,14 +199,14 @@ public class EligibilityService {
 private EligibilityRecord persistEligibilityResults(
         String userId,
         String checkExamRecordId,
-        List<Long> categoryIds,
+        List<String> categoryNames,
         Set<University> universities,
         Map<University, List<ProgramEvaluationResult>> eligiblePrograms,
         Map<University, List<ProgramEvaluationResult>> alternativePrograms,
         List<ProgramEvaluationResult> allResults) {
 
     log.info("📥 persistEligibilityResults called | userId={} | examRecordId={} | universities={} | categories={}",
-            userId, checkExamRecordId, universities.size(), categoryIds);
+            userId, checkExamRecordId, universities.size(), categoryNames);
 
     ExamCheckRecord examRecord = examCheckRecordRepository.findById(checkExamRecordId)
             .orElseThrow(() -> {
@@ -226,20 +227,12 @@ private EligibilityRecord persistEligibilityResults(
                 });
     }
 
-    List<Category> categories = categoryRepository.findAllById(categoryIds);
-    log.debug("📂 Fetched {} categories for ids={}", categories.size(), categoryIds);
-
-    if (categories.isEmpty()) {
-        log.error("❌ No categories found for ids={}", categoryIds);
-        throw new EligibilityException("No valid categories found for provided ids");
-    }
-
     EligibilityRecord record = new EligibilityRecord();
     record.setId(UUID.randomUUID().toString());
     record.setUserId(userId);
     record.setExamCheckRecord(examRecord);
     record.setCreatedAt(LocalDateTime.now(ZoneId.of("Africa/Accra")));
-    record.setSelectedCategories(categories.stream().map(Category::getName).toList());
+    record.setSelectedCategories(categoryNames);
 
     log.debug("🆕 EligibilityRecord created | id={} | userId={} | createdAt={}",
             record.getId(), record.getUserId(), record.getCreatedAt());

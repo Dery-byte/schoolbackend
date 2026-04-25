@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.BatchSize;
 
 import java.util.*;
 
@@ -38,6 +39,7 @@ public class Program {
     @CollectionTable(name = "program_core_subjects", joinColumns = @JoinColumn(name = "program_id", nullable = false))
     @MapKeyColumn(name = "subject")
     @Column(name = "grade")
+    @BatchSize(size = 50)
     private Map<String, String> coreSubjects = new HashMap<>();
 
     // ✅ Alternative subjects and grades (e.g., {"Chemistry": "B3", "Biology": "C4"})
@@ -45,6 +47,7 @@ public class Program {
     @CollectionTable(name = "program_alternative_subjects", joinColumns = @JoinColumn(name = "program_id", nullable = false))
     @MapKeyColumn(name = "subject")
     @Column(name = "grade")
+    @BatchSize(size = 50)
     private Map<String, String> alternativeSubjects = new HashMap<>();
 
 
@@ -53,6 +56,7 @@ public class Program {
     // ✅ New flexible format supporting AND/OR logic
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "program_alt_groups", joinColumns = @JoinColumn(name = "program_id"))
+    @BatchSize(size = 50)
     private List<SubjectRequirement> alternativeGroups = new ArrayList<>();
 
 

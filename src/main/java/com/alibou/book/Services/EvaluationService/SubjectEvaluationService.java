@@ -163,22 +163,22 @@ public class SubjectEvaluationService {
             List<String> allGroupSubjects) {
 
         if (comparisons.isEmpty()) {
-            return String.format("❌ No matching subjects found in group: %s", allGroupSubjects);
+            return String.format("❌ None of the subjects in this group qualify: %s", allGroupSubjects);
         }
 
         long metCount = comparisons.stream().filter(SubjectComparison::isMeetRequirement).count();
 
         if (anyOf) {
             return groupMet
-                    ? String.format("✅ Alternative (anyOf) requirement met - %d of %d subjects passed",
+                    ? String.format("✅ Elective requirement satisfied — %d of %d subjects qualified",
                     metCount, comparisons.size())
-                    : String.format("❌ Alternative (anyOf) not met - none of %d subjects passed",
+                    : String.format("❌ Elective requirement not met — no qualifying subjects found (%d checked)",
                     comparisons.size());
         } else {
             return groupMet
-                    ? String.format("✅ Alternative (allOf) requirement met - all %d subjects passed",
-                    comparisons.size())
-                    : String.format("❌ Alternative (allOf) not met - only %d of %d subjects passed",
+                    ? String.format("✅ All required elective subjects passed (%d of %d)",
+                    comparisons.size(), comparisons.size())
+                    : String.format("❌ Not all required elective subjects passed — only %d of %d met the grade",
                     metCount, comparisons.size());
         }
     }

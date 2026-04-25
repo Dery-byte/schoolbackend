@@ -341,7 +341,7 @@ public class EligibilityReportService {
             if (!hasContent) return;
         }
         if (!sections.altLines.isEmpty()) {
-            addAnalysisTable(doc, "Alternative Requirements",
+            addAnalysisTable(doc, "Elective Requirements",
                     sections.altLines, new Color(245, 158, 11));
         }
         if (!sections.recLines.isEmpty()) {
@@ -360,9 +360,10 @@ public class EligibilityReportService {
         List<String> fail = new ArrayList<>();
 
         for (String line : lines) {
-            String clean = line.replaceAll("[✅⚠️❌💡📋⭐]", "").trim();
+            String humanized = humanizeAltLine(line);
+            String clean = humanized.replaceAll("[✅⚠️❌💡📋⭐]", "").trim();
             if (clean.isEmpty()) continue;
-            LineStatus status = classifyLine(line);
+            LineStatus status = classifyLine(humanized);
             switch (status) {
                 case OK   -> ok.add(clean);
                 case WARN -> warn.add(clean);
@@ -397,9 +398,9 @@ public class EligibilityReportService {
         table.setSpacingAfter(4f);
 
         // Header row
-        addAnalysisHeaderCell(table, "OKAY",             GREEN,   headerColor);
-        addAnalysisHeaderCell(table, "MISSING",          ORANGE,  headerColor);
-        addAnalysisHeaderCell(table, "BELOW REQUIREMENT",CRIMSON, headerColor);
+        addAnalysisHeaderCell(table, "Met Requirements", GREEN,   headerColor);
+        addAnalysisHeaderCell(table, "Missing",          ORANGE,  headerColor);
+        addAnalysisHeaderCell(table, "Below Required Grade", CRIMSON, headerColor);
 
         int maxRows = Math.max(ok.size(), Math.max(warn.size(), fail.size()));
         for (int i = 0; i < maxRows; i++) {
@@ -561,6 +562,40 @@ public class EligibilityReportService {
                 : Collections.emptyList();
 
         return rs;
+    }
+
+    private String humanizeAltLine(String line) {
+        // Guard: only process lines that contain "Alternative" with parenthesised type
+        if (!line.contains("Alternative") || (!line.contains("allOf") && !line.contains("anyOf")
+                && !line.contains("No matching subjects"))) {
+            return line;
+        }
+
+        // allOf met — "Alternative (allOf) requirement met - all N subjects passed"
+        line = line.replaceAll(
+            "Alternative\\s*\\(allOf\\)\\s*requirement\\s*met\\s*-\\s*all\\s*(\\d+)\\s*subjects\\s*passed",
+            "All required elective subjects passed ($1 of $1)");
+
+        // allOf not met — "Alternative (allOf) not met - only N of M subjects passed"
+        line = line.replaceAll(
+            "Alternative\\s*\\(allOf\\)\\s*not\\s*met\\s*-\\s*only\\s*(\\d+)\\s*of\\s*(\\d+)\\s*subjects\\s*passed",
+            "Not all required elective subjects passed — only $1 of $2 met the grade");
+
+        // anyOf met — "Alternative (anyOf) requirement met - N of M subjects passed"
+        line = line.replaceAll(
+            "Alternative\\s*\\(anyOf\\)\\s*requirement\\s*met\\s*-\\s*(\\d+)\\s*of\\s*(\\d+)\\s*subjects\\s*passed",
+            "Elective requirement satisfied — $1 of $2 subjects qualified");
+
+        // anyOf not met — "Alternative (anyOf) not met - none of N subjects passed"
+        line = line.replaceAll(
+            "Alternative\\s*\\(anyOf\\)\\s*not\\s*met\\s*-\\s*none\\s*of\\s*(\\d+)\\s*subjects\\s*passed",
+            "Elective requirement not met — no qualifying subjects found ($1 checked)");
+
+        // No matching subjects
+        line = line.replace("No matching subjects found in group:",
+                            "None of the subjects in this group qualify:");
+
+        return line;
     }
 
     private LineStatus classifyLine(String line) {

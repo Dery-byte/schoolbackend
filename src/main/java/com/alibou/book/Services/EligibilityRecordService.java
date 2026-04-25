@@ -19,7 +19,7 @@ public class EligibilityRecordService {
     }
 
     public List<EligibilityRecord> getRecordsByUser(String userId) {
-        return repository.findByUserId(userId);
+        return repository.findByUserIdOrderByCreatedAtDesc(userId);
     }
 
     public long getTotalEligibilityRecords() {

@@ -52,14 +52,13 @@ public class GuestEligibilityService {
                 request.getCategoryIds()
         );
 
-        // Tag the resulting EligibilityRecord as temporary
+        // Tag the resulting EligibilityRecord as temporary (single UPDATE — no load+save round-trip)
         if (response != null && response.getRecordId() != null) {
-            eligibilityRecordRepository.findById(response.getRecordId()).ifPresent(eligRecord -> {
-                eligRecord.setSessionId(request.getSessionId());
-                eligRecord.setTemporary(true);
-                eligRecord.setPaymentReference(record.getPaymentReference());
-                eligibilityRecordRepository.save(eligRecord);
-            });
+            eligibilityRecordRepository.tagAsTemporary(
+                    response.getRecordId(),
+                    request.getSessionId(),
+                    record.getPaymentReference()
+            );
         }
 
         return response;
