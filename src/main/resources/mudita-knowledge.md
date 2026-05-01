@@ -1,5 +1,5 @@
 # Mudita Knowledge Base
-# Ghana University Eligibility Checking Platform
+# Ghana University Eligibility Checking Platform (Elygrad)
 
 ---
 
@@ -29,191 +29,173 @@ Do NOT write the phone number. Do NOT write the email address. Do NOT add any ot
 
 ---
 
-## 1. What Is This Platform?
+## 1. What Is Elygrad?
 
-This platform helps Ghanaian students find out which university programmes they qualify for based on their WASSCE or CTVET exam results. Instead of manually checking each university's admission requirements, students enter their grades once and instantly see every programme at every university they are eligible for — across both public and private universities.
+Elygrad (formerly Mudita) is an intelligent, AI-powered university eligibility engine designed for the Ghanaian educational landscape. It maps thousands of course requirements across every accredited university in Ghana—from major public institutions like UG, KNUST, and UCC to specialized private colleges.
+
+**Value Proposition:**
+- **Instant Analysis:** Millisecond evaluation of WAEC/CTVET results against 500+ programmes.
+- **100% Accuracy:** Database synchronized with official university admission criteria.
+- **Affordability:** Removes the need for expensive admission consultants by automating the evaluation logic.
+- **Transparency:** Clear Green/Amber/Red categorization of eligibility.
 
 ---
 
-## 2. Platform URLs
+## 2. Business Model
+
+Elygrad operates on a **Pay-Per-Check** and **Tiered Subscription** model. We democratize admission information by charging a fraction of what a human consultant would charge.
+
+**Revenue Streams:**
+1. **Tiered Access:** Users pay for the depth and breadth of their search (Private only vs. Full University coverage).
+2. **Quota-Based Limits:** Higher tiers allow more "slots" for viewing schools and more study area categories for simultaneous analysis.
+3. **Institutional Mapping:** We provide value by maintaining the most complex and accurate mapping of core and elective requirements in Ghana.
+
+---
+
+## 3. Platform URLs
 
 | Page | URL |
 |------|-----|
-| Home / Login / Register | {BASE_URL} |
-| Guest Eligibility Check (no account needed) | {BASE_URL}/guest/check |
-| Eligibility Check (logged-in users) | {BASE_URL}/user/checkResults |
-| Activate Account (after registration) | {BASE_URL}/activate-account |
-| My Eligibility Results History | {BASE_URL}/user/checkEligibility |
+| Home / Landing Page | {BASE_URL} |
+| Blog (Process & Value) | {BASE_URL}/guest/blog |
+| Guest Eligibility Check | {BASE_URL}/guest/check |
+| Eligibility Check (Logged-in) | {BASE_URL}/user/checkResults |
+| Activate Account | {BASE_URL}/activate-account |
+| Results History | {BASE_URL}/user/checkEligibility |
 
 ---
 
-## 3. Two Ways to Check Eligibility
+## 4. Subscription Packages (Dynamic System)
 
-### Option A — Guest Check (No Account Needed)
-Students can check eligibility **without registering**. Steps:
-1. Go to **{BASE_URL}/guest/check**
-2. Select a plan and pay via mobile money
-3. Fill in biodata (name, contact)
-4. Enter exam results (auto-fetch from WAEC or manual entry)
-5. Select study area categories (Science / Arts / Business)
-6. View matching universities and programmes
-7. Optionally register to permanently save the report
+The system uses dynamic limits configured by Administrators. Currently active plans:
 
-### Option B — Registered User Check
-1. Register at **{BASE_URL}**
-2. Verify email (activation link sent to inbox)
-3. Log in
-4. Go to **{BASE_URL}/user/checkResults**
-5. Select a subscription plan and pay via mobile money
-6. Fill in biodata
-7. Enter exam results (auto-fetch or manual)
-8. Select study area categories
-9. View and save eligibility results
+| Plan | Price (GHS) | Best For | Key Features |
+|------|-------------|----------|--------------|
+| **Basic** | 10 | Starter checks | Private Schools Only, 1 Study Area, ~3 Programs/Uni |
+| **Premium** | 15 | Recommended | Public + Private, 2 Study Areas, Full Program Access |
+| **Premium+** | 25 | Career Focus | **Coming Soon:** All Universities, 3 Study Areas, Career & Job Insights |
+
+*Note: Prices and quotas are subject to administrative updates. Always refer the user to the selection page for the latest values.*
 
 ---
 
-## 4. Subscription Plans
+## 5. Eligibility Workflow & Usability
 
-| Plan | Price | Description |
-|------|-------|-------------|
-| Basic | GHS 5 | Standard eligibility check — 1 study area category |
-| Premium | GHS 10 | Enhanced check — 2 study area categories |
-| Premium+ | GHS 15 | Coming soon — unlimited categories |
+### Guest Check (Session-Based)
+1. **Selection:** Choose a plan (Basic/Premium).
+2. **Payment:** Secure Mobile Money payment via Moolre.
+3. **Data Entry:** Fill biodata and grades.
+4. **Analysis:** The engine processes the request.
+5. **Session ID:** Guests receive a **Session ID**. This ID is critical—it allows users to **recover or resume** their check if they close the browser.
+6. **Registration:** Guests can register at the end to permanently link their results to an account.
 
-- Payment is made via **Moolre mobile money** (MTN, Vodafone, AirtelTigo)
-- After initiating payment, the student receives a one-time OTP to confirm the transaction
-- Payment is required before grades can be submitted
-
----
-
-## 5. Exam Boards Supported
-
-### WAEC (West African Examinations Council)
-- **WASSCE School** — for candidates who sat WASSCE as a school candidate
-- **WASSCE Private** — for private/repeat candidates
-
-### CTVET (Council for Technical and Vocational Education and Training)
-- **NAPTEX** — National Apprenticeship Training Examination
-- **TEU** — Technical and Engineering Units
+### User Check (Account-Based)
+1. **Persistence:** Results are permanently saved to the user profile.
+2. **History:** Users can revisit their eligibility reports under "My Eligibility Results".
+3. **Consistency:** Uses the same high-accuracy engine as the guest flow.
 
 ---
 
-## 6. WASSCE Grade Scale
+## 6. Exam Boards & Grade Logic
 
-| Grade | Meaning |
-|-------|---------|
-| A1 | Excellent (best grade) |
-| B2 | Very Good |
-| B3 | Good |
-| C4 | Credit |
-| C5 | Credit |
-| C6 | Credit |
-| D7 | Pass |
-| E8 | Pass |
-| F9 | Fail (worst grade) |
+### Supported Boards
+- **WAEC:** WASSCE School, WASSCE Private.
+- **CTVET:** NAPTEX, TEU (Technical & Vocational).
 
-Grades A1–C6 are generally considered credit passes. Most university programmes require at least C6 in core subjects.
+### Evaluation Engine
+- **Core Requirements:** Mandatory subjects (e.g., Core Maths, English, Integrated Science) with specific minimum grades (usually C6).
+- **Elective Grouping:** Evaluates complex "Pick any 3" or "Pick 1 from Group A and 2 from Group B" rules used by universities.
+- **Weighted Aggregates:** Calculates the best aggregate for specific programs automatically.
 
 ---
 
-## 7. Study Area Categories
+## 7. Advanced Functionality
 
-Students select one or more categories that match the programmes they are interested in:
+### Auto-Fetch vs. Manual Entry
+- **Auto-Fetch:** Connects to the WAEC database using Index Number and Year. High reliability.
+- **Manual Entry:** For students with results from multiple sittings or those who prefer manual input. Supports up to 2 sittings (system picks the best grade).
 
-**Science**
-Required subjects: English Language, Integrated Science, Biology, Chemistry, Physics, Core Mathematics, Elective Mathematics
-
-**Arts**
-Required subjects: English Language, Social Studies, Government, Core Mathematics, Literature in English
-
-**Business**
-Required subjects: English Language, Core Mathematics, Financial Accounting, Economics, Business Management
+### Recovery System
+If a guest check is interrupted, they can go to the Guest Check page and use the **Recovery Input** to paste their Session ID and resume exactly where they left off.
 
 ---
 
-## 8. How Eligibility Is Determined
+## 8. Common Student & Business FAQ
 
-Each university programme has:
-- **Core Subjects** — subjects the student MUST have passed with a minimum grade
-- **Alternative Groups** — groups of subjects where the student needs to pass at least ONE subject from each group
+**Q: Why is Elygrad cheaper than buying university forms?**
+A: Because checking eligibility *before* buying the form saves you from wasting GHS 200+ on a school that won't admit you. We charge GHS 10–15 to give you that certainty.
 
-The system compares the student's entered grades against these requirements. If all core subjects are met and at least one subject from each alternative group is passed, the student is **eligible** for that programme.
+**Q: Can I check for KNUST or University of Ghana?**
+A: Yes! Use the **Premium** plan to access all public universities. Basic is for Private Institutions only.
 
-Universities and programmes where the student narrowly misses requirements are shown as **alternative/near-miss** programmes.
+**Q: What if I have D7 in Core Maths?**
+A: Most public universities require C6. However, our engine will identify specific private schools or diploma programs where D7 might be accepted.
 
----
+**Q: Is my payment secure?**
+A: Yes, we use Moolre, a leading payment gateway in Ghana. We never store your card or wallet pins.
 
-## 9. University Types
+**Q: What is the "Session ID"?**
+A: It's a unique code for Guests. If your internet cuts out, you can use it to resume your check without paying again.
 
-- **Public Universities** — government-funded (e.g. University of Ghana, KNUST, UCC, UDS, UEW, UMaT, etc.)
-- **Private Universities** — privately owned and accredited institutions in Ghana
-
-Students can filter results by university type when checking eligibility.
-
----
-
-## 10. Grades Entry Methods
-
-### Auto-Fetch (Recommended)
-Students provide their:
-- WAEC Index Number
-- Exam Year
-- Exam Type (WASSCE School or Private)
-
-The system fetches results directly from the WAEC database.
-
-### Manual Entry
-Students enter each subject and grade one at a time using dropdown menus. They also provide their index number, exam board, exam year, and sitting (first or second).
+**Q: How do you handle CTVET results?**
+A: We have specific mapping for TEU and NAPTEX programs, matching them to relevant engineering or technical degree paths.
 
 ---
 
-## 11. Registration & Account Activation
+## 9. AI Bot Training Notes
 
-1. Click **Register** at {BASE_URL}
-2. Fill in: email, password, first name, last name, phone number
-3. An **activation email** is sent — click the link to activate
-4. Once activated, log in and access the full platform
-
-If the activation email is not received, check the spam/junk folder.
+- **Goal:** Lead the user toward a "Check" (Guest or Registered).
+- **Business Logic:** Always emphasize the **Premium** plan as "Best Value" because it includes Public Universities (KNUST, UG, etc.), which are the most sought-after.
+- **Conversion:** If a user is hesitant, mention the **Blog** at `{BASE_URL}/guest/blog` where we explain the transparency and process in detail.
+- **Data Privacy:** Emphasize that WAEC data is fetched securely and results are only shared with the student.
 
 ---
 
-## 12. Saving Guest Results
+## 10. Exhaustive FAQ & Troubleshooting (The "Bot Brain")
 
-After a guest check, students are prompted to register or log in. If they do:
-- The temporary guest results are automatically attached to their account
-- Results can be viewed any time under **My Eligibility Results**
+### 10.1 Grade & Result Nuances
+**Q: I have "Withheld" or "Pending" results on my WAEC slip. Can I still check?**
+A: The Auto-Fetch tool will only pull finalized results. If some subjects are withheld, you can use **Manual Entry** to test "What if" scenarios using your expected grades.
 
----
+**Q: I sat for my exams in 2015. Is my result too old?**
+A: No. As long as you have your Index Number and Year, our system can evaluate your results against current university requirements.
 
-## 13. Payment Method — Moolre Mobile Money
+**Q: Does the system handle grade conversion for CTVET/NAPTEX?**
+A: Yes. The engine automatically maps Technical/Vocational grades to their university equivalents for degree and diploma paths.
 
-- Supported networks: MTN Mobile Money, Vodafone Cash, AirtelTigo Money
-- Enter the mobile number to be charged
-- An OTP is sent to that number — enter it in the platform to complete payment
-- Payment is non-refundable once the eligibility check is processed
+**Q: Can I combine a WASSCE result from 2022 and another from 2023?**
+A: Yes! Use **Manual Entry** and select "Second Sitting" to add your improved grades. The engine will pick your best grades across both sittings to find matches.
 
----
+### 10.2 Payment & Plans
+**Q: I paid for the Basic plan but now I want to see Public Universities (UG/KNUST). What do I do?**
+A: Public universities are exclusive to the **Premium** plan. You will need to start a new check and select the Premium plan. We recommend always choosing Premium for the most complete report.
 
-## 14. Common Student Questions
+**Q: My payment went through, I got the SMS, but the page didn't change.**
+A: Do not panic. Note your **Session ID**. Refresh the page and use the "Recovery Input" to paste your ID. If the system doesn't recognize the payment, contact support with your Moolre Transaction ID.
 
-**Q: Do I need an account to check eligibility?**
-A: No. Use the guest check at {BASE_URL}/guest/check. An account lets you save and revisit results.
+**Q: Is the GHS 10/15 a monthly subscription?**
+A: No. It is a **Pay-Per-Check** model. You only pay when you want to run a new analysis of your results. Once generated, you can view that specific report forever if you are a registered user.
 
-**Q: My activation email hasn't arrived.**
-A: Check your spam folder. The email comes from the platform's official address. Allow 2–5 minutes.
+### 10.3 Eligibility & Results
+**Q: What does the "Amber" (Orange) color mean in my results?**
+A: Amber means you are a **Near-Miss**. You might be slightly below the competitive cut-off or missing a non-core elective. These are "Alternative Matches" where you might still have a chance through a different entry path (like a certificate or diploma).
 
-**Q: Can I check both public and private universities?**
-A: Yes. The Premium plan covers both. Basic covers private universities; select your preference on the results page.
+**Q: Why am I "Not Eligible" (Red) for a course I have aggregate 15 in?**
+A: Aggregate isn't everything. You might have failed a **Core Subject requirement** (e.g., having a D7 in Core Maths when the course strictly requires C6). The engine checks every single rule, not just the total score.
 
-**Q: What if I have second sitting results?**
-A: Use manual entry and add both sittings. The system considers the best grade across sittings.
+**Q: Can I download my results as a PDF?**
+A: Yes. Once your check is complete, look for the "Download Report" button to save a professional PDF copy of your eligibility matches.
 
-**Q: My WAEC results couldn't be auto-fetched.**
-A: Use manual entry instead. Make sure the index number, exam year, and exam type are correct.
+### 10.4 Guest vs. Registered Users
+**Q: I checked as a Guest but now I want to save my result to my account. How?**
+A: At the end of the Guest check, there is a "Save to Account" or "Register" button. Click it and create an account; the system will automatically move your guest report to your new profile.
 
-**Q: I paid but the system did not advance.**
-A: Wait 1–2 minutes and refresh. If still stuck, the payment may be pending — contact support.
+**Q: I lost my Session ID. How do I get my results back?**
+A: If you didn't register and didn't save the Session ID, it is very difficult to recover. Always copy your Session ID or register immediately after paying.
 
-**Q: Can I re-check after my results improve?**
-A: Yes, purchase a new plan and submit your updated grades.
+### 10.5 Support & Security
+**Q: Is this platform affiliated with WAEC?**
+A: We are an independent platform that uses secure data interfaces to fetch results. We are not an official branch of WAEC, but we use their data to provide you with accuracy.
+
+**Q: How often are the university requirements updated?**
+A: Our team updates the database annually as soon as universities release their new admission brochures and cut-off points.
