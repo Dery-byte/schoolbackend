@@ -24,8 +24,16 @@ public class EligibilityResponseMapper {
             Map<String, String> candidateGrades,
             List<ProgramEvaluationResult> allEvaluations) {
 
+        // Create a map for O(1) lookups of evaluation results by program name
+        Map<String, ProgramEvaluationResult> evaluationMap = allEvaluations.stream()
+                .collect(Collectors.toMap(
+                        e -> e.getProgram().getName(),
+                        e -> e,
+                        (e1, e2) -> e1 // In case of duplicate names, keep the first one
+                ));
+
         List<UniversityEligibilityDto> universityDtos = record.getUniversities().stream()
-                .map(uni -> mapUniversityEligibility(uni, allEvaluations))
+                .map(uni -> mapUniversityEligibility(uni, evaluationMap))
                 .collect(Collectors.toList());
 
         EligibilitySummary summary = buildSummary(universityDtos, allEvaluations);
@@ -44,7 +52,7 @@ public class EligibilityResponseMapper {
 
     private UniversityEligibilityDto mapUniversityEligibility(
             UniversityEligibility uniElig,
-            List<ProgramEvaluationResult> allEvaluations) {
+            Map<String, ProgramEvaluationResult> evaluationMap) {
 
         // Combine both eligible and alternative programs
         List<ProgramEligibilityDto> programDtos = new ArrayList<>();
@@ -52,13 +60,13 @@ public class EligibilityResponseMapper {
         // Map eligible programs
         if (uniElig.getEligiblePrograms() != null) {
             uniElig.getEligiblePrograms().forEach(eligibleProg ->
-                    programDtos.add(mapEligibleProgram(eligibleProg, allEvaluations)));
+                    programDtos.add(mapEligibleProgram(eligibleProg, evaluationMap)));
         }
 
         // Map alternative programs
         if (uniElig.getAlternativePrograms() != null) {
             uniElig.getAlternativePrograms().forEach(altProg ->
-                    programDtos.add(mapAlternativeProgram(altProg, allEvaluations)));
+                    programDtos.add(mapAlternativeProgram(altProg, evaluationMap)));
         }
 
         long eligibleCount = uniElig.getEligiblePrograms() != null
@@ -81,13 +89,10 @@ public class EligibilityResponseMapper {
 
     private ProgramEligibilityDto mapEligibleProgram(
             EligibleProgram eligibleProg,
-            List<ProgramEvaluationResult> allEvaluations) {
+            Map<String, ProgramEvaluationResult> evaluationMap) {
 
-        // Find the corresponding evaluation result by program name
-        ProgramEvaluationResult evalResult = allEvaluations.stream()
-                .filter(e -> e.getProgram().getName().equals(eligibleProg.getName()))
-                .findFirst()
-                .orElse(null);
+        // Find the corresponding evaluation result by program name in the map
+        ProgramEvaluationResult evalResult = evaluationMap.get(eligibleProg.getName());
 
         if (evalResult == null) {
             // Fallback: Create basic DTO without detailed evaluation
@@ -124,13 +129,10 @@ public class EligibilityResponseMapper {
 
     private ProgramEligibilityDto mapAlternativeProgram(
             AlternativeProgram altProg,
-            List<ProgramEvaluationResult> allEvaluations) {
+            Map<String, ProgramEvaluationResult> evaluationMap) {
 
-        // Find the corresponding evaluation result by program name
-        ProgramEvaluationResult evalResult = allEvaluations.stream()
-                .filter(e -> e.getProgram().getName().equals(altProg.getName()))
-                .findFirst()
-                .orElse(null);
+        // Find the corresponding evaluation result by program name in the map
+        ProgramEvaluationResult evalResult = evaluationMap.get(altProg.getName());
 
         if (evalResult == null) {
             // Fallback: Create basic DTO without detailed evaluation

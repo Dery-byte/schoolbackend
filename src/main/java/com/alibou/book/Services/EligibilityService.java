@@ -160,41 +160,6 @@ public class EligibilityService {
 
         return universities;
     }
-//
-//    private EligibilityRecord persistEligibilityResults(
-//            String userId,
-//            String checkExamRecordId,
-//            List<Long> categoryIds,
-//            Set<University> universities,
-//            Map<University, List<ProgramEvaluationResult>> eligiblePrograms,
-//            Map<University, List<ProgramEvaluationResult>> alternativePrograms,
-//            List<ProgramEvaluationResult> allResults) {
-//
-//        ExamCheckRecord examRecord = examCheckRecordRepository.findById(checkExamRecordId)
-//                .orElseThrow(() -> new EntityNotFoundException("ExamCheckRecord not found: " + checkExamRecordId));
-//
-//        List<Category> categories = categoryRepository.findAllById(categoryIds);
-//
-//        EligibilityRecord record = new EligibilityRecord();
-//        record.setId(UUID.randomUUID().toString());
-//        record.setUserId(userId);
-//        record.setExamCheckRecord(examRecord);
-//        record.setCreatedAt(LocalDateTime.now(ZoneId.of("Africa/Accra")));
-//        record.setSelectedCategories(categories.stream().map(Category::getName).toList());
-//
-//        List<UniversityEligibility> universityEligibilities = universities.stream()
-//                .map(uni -> buildUniversityEligibility(
-//                        uni, eligiblePrograms, alternativePrograms, allResults, record, userId))
-//                .collect(Collectors.toList());
-//
-//        record.setUniversities(universityEligibilities);
-////        examRecord.setCheckStatus(CheckStatus.CHECKED);
-////        examCheckRecordRepository.save(examRecord);
-//        examCheckRecordRepository.updateCheckStatus(checkExamRecordId, CheckStatus.CHECKED);
-//
-//        return eligibilityRecordRepository.save(record);
-//    }
-
 
 private EligibilityRecord persistEligibilityResults(
         String userId,
@@ -237,18 +202,6 @@ private EligibilityRecord persistEligibilityResults(
     log.debug("🆕 EligibilityRecord created | id={} | userId={} | createdAt={}",
             record.getId(), record.getUserId(), record.getCreatedAt());
 
-    List<UniversityEligibility> universityEligibilities = universities.stream()
-            .map(uni -> {
-                log.debug("🏫 Building eligibility for university={} | type={}",
-                        uni.getName(), uni.getType());
-                return buildUniversityEligibility(
-                        uni, eligiblePrograms, alternativePrograms, allResults, record, userId);
-            })
-            .collect(Collectors.toList());
-
-    log.info("✅ Built eligibility for {} universities", universityEligibilities.size());
-    record.setUniversities(universityEligibilities);
-
     try {
         log.debug("🔄 Updating examRecord status to CHECKED | id={}", checkExamRecordId);
         examCheckRecordRepository.updateCheckStatus(checkExamRecordId, CheckStatus.CHECKED);
@@ -257,6 +210,27 @@ private EligibilityRecord persistEligibilityResults(
         log.error("❌ Failed to update CheckStatus for examRecordId={} | error={}", checkExamRecordId, e.getMessage(), e);
         throw e;
     }
+
+    // Pre-calculate categories for each program to avoid N+1 queries during mapping
+    Map<Long, List<String>> programCategoryNamesMap = allResults.stream()
+            .map(ProgramEvaluationResult::getProgram)
+            .distinct()
+            .collect(Collectors.toMap(
+                    Program::getId,
+                    p -> p.getCategories().stream().map(Category::getName).collect(Collectors.toList())
+            ));
+
+    List<UniversityEligibility> universityEligibilities = universities.stream()
+            .map(uni -> {
+                log.debug("🏫 Building eligibility for university={} | type={}",
+                        uni.getName(), uni.getType());
+                return buildUniversityEligibility(
+                        uni, eligiblePrograms, alternativePrograms, allResults, record, userId, programCategoryNamesMap);
+            })
+            .collect(Collectors.toList());
+
+    log.info("✅ Built eligibility for {} universities", universityEligibilities.size());
+    record.setUniversities(universityEligibilities);
 
     try {
         EligibilityRecord saved = eligibilityRecordRepository.save(record);
@@ -273,7 +247,8 @@ private EligibilityRecord persistEligibilityResults(
             Map<University, List<ProgramEvaluationResult>> alternativePrograms,
             List<ProgramEvaluationResult> allResults,
             EligibilityRecord record,
-            String userId) {
+            String userId,
+            Map<Long, List<String>> programCategoryNamesMap) {
 
         UniversityEligibility uniElig = new UniversityEligibility();
         uniElig.setId(UUID.randomUUID().toString());
@@ -287,14 +262,14 @@ private EligibilityRecord persistEligibilityResults(
         List<EligibleProgram> eligibleProgramsList = eligiblePrograms
                 .getOrDefault(university, List.of())
                 .stream()
-                .map(result -> createEligibleProgram(result, uniElig))
+                .map(result -> createEligibleProgram(result, uniElig, programCategoryNamesMap))
                 .collect(Collectors.toList());
 
         // Build alternative programs list
         List<AlternativeProgram> alternativeProgramsList = alternativePrograms
                 .getOrDefault(university, List.of())
                 .stream()
-                .map(result -> createAlternativeProgram(result, uniElig))
+                .map(result -> createAlternativeProgram(result, uniElig, programCategoryNamesMap))
                 .collect(Collectors.toList());
 
         uniElig.setEligiblePrograms(eligibleProgramsList);
@@ -305,19 +280,16 @@ private EligibilityRecord persistEligibilityResults(
 
     private EligibleProgram createEligibleProgram(
             ProgramEvaluationResult result,
-            UniversityEligibility uniElig) {
+            UniversityEligibility uniElig,
+            Map<Long, List<String>> programCategoryNamesMap) {
 
         // Build cutoff points from core subjects
         Map<String, String> cutoffPoints = new HashMap<>();
         result.getCoreSubjectResults().forEach(core ->
                 cutoffPoints.put(core.getSubjectName(), core.getRequiredGrade()));
 
-        // Extract category names from program
-        List<String> categoryNames = result.getProgram().getCategories() != null
-                ? result.getProgram().getCategories().stream()
-                .map(Category::getName)
-                .collect(Collectors.toList())
-                : new ArrayList<>();
+        // Extract category names from pre-calculated map
+        List<String> categoryNames = programCategoryNamesMap.getOrDefault(result.getProgram().getId(), new ArrayList<>());
 
         // Build AI recommendation with detailed explanation
         AIRecommendation aiRec = buildAIRecommendation(result);
@@ -336,19 +308,16 @@ private EligibilityRecord persistEligibilityResults(
 
     private AlternativeProgram createAlternativeProgram(
             ProgramEvaluationResult result,
-            UniversityEligibility uniElig) {
+            UniversityEligibility uniElig,
+            Map<Long, List<String>> programCategoryNamesMap) {
 
         // Build cutoff points
         Map<String, String> cutoffPoints = new HashMap<>();
         result.getCoreSubjectResults().forEach(core ->
                 cutoffPoints.put(core.getSubjectName(), core.getRequiredGrade()));
 
-        // Extract categories
-        List<String> categoryNames = result.getProgram().getCategories() != null
-                ? result.getProgram().getCategories().stream()
-                .map(Category::getName)
-                .collect(Collectors.toList())
-                : new ArrayList<>();
+        // Extract categories from pre-calculated map
+        List<String> categoryNames = programCategoryNamesMap.getOrDefault(result.getProgram().getId(), new ArrayList<>());
 
         // Build AI recommendation
         AIRecommendation aiRec = buildAIRecommendation(result);

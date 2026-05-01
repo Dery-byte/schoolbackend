@@ -24,8 +24,11 @@ public interface ProgramRepository extends JpaRepository<Program, Long> {
     // Or if you want to find by category ID
     List<Program> findByCategories_Id(Long categoryId);
 
-    // Fetch all programs for a list of category IDs in one query
-    @Query("SELECT DISTINCT p FROM Program p JOIN p.categories c WHERE c.id IN :categoryIds")
+    // Fetch all programs for a list of category IDs in one query with university and categories pre-fetched
+    @Query("SELECT DISTINCT p FROM Program p " +
+           "LEFT JOIN FETCH p.university " +
+           "LEFT JOIN FETCH p.categories " +
+           "WHERE p.id IN (SELECT p2.id FROM Program p2 JOIN p2.categories c WHERE c.id IN :categoryIds)")
     List<Program> findDistinctByCategoryIds(@Param("categoryIds") List<Long> categoryIds);
 
     // For Option 2
