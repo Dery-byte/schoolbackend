@@ -128,7 +128,7 @@
 
 spring:
   datasource:
-    url: jdbc:mysql://mysql-210601-0.cloudclusters.net:10010/schoolddb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    url: jdbc:mysql://mysql-210992-0.cloudclusters.net:10031/schoolddb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
     username: mudita
     password: EMM@RESCUe12
     driver-class-name: com.mysql.cj.jdbc.Driver

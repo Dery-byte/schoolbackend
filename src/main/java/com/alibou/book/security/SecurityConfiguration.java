@@ -129,6 +129,7 @@ public class SecurityConfiguration {
         CorsConfiguration configuration = new CorsConfiguration();
         // Allow your frontend origins
         configuration.setAllowedOriginPatterns(List.of(
+                "https://elygrad.com",
                 "https://schoolfrontend-rho.vercel.app",
                 "http://localhost:4200",
                 "http://localhost:8088",
