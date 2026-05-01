@@ -40,6 +40,7 @@ public class EligibilityService {
     private final SubjectEvaluationService subjectEvaluationService;
     private final ProgramEvaluationService programEvaluationService;
     private final EligibilityResponseMapper responseMapper;
+    private final PackageConfigurationService packageConfigurationService;
 
     /**
      * Main method that returns API response with detailed subject comparisons
@@ -86,17 +87,28 @@ public class EligibilityService {
             log.info("📊 Step 5 Complete: {} universities with eligible programs, {} with alternative", 
                     eligiblePrograms.size(), alternativePrograms.size());
 
-            // 6. Filter by university type if specified
-            log.debug("🔄 Step 6: Filtering by university type: {}", universityType);
-            Set<University> universities = filterUniversitiesByType(
-                    eligiblePrograms, alternativePrograms, universityType);
-            log.info("📊 Step 6 Complete: Final university count: {}", universities.size());
+            // 6. Filter and apply Quotas/Visibility from Package Configuration
+            log.debug("🔄 Step 6: Applying Package Configuration logic...");
+            ExamCheckRecord examRecord = examCheckRecordRepository.findById(checkExamRecordId)
+                    .orElseThrow(() -> new EntityNotFoundException("ExamCheckRecord not found: " + checkExamRecordId));
+            
+            PackageConfiguration packageConfig = packageConfigurationService.getConfigurationBySubscriptionType(
+                    examRecord.getSubscriptionType() != null ? examRecord.getSubscriptionType() : SubscriptionType.BASIC);
+            
+            log.info("📦 Using Package Config for {}: visibility={}, privateSlots={}, publicSlots={}", 
+                    packageConfig.getSubscriptionType(), packageConfig.getVisibility(), 
+                    packageConfig.getPrivateSchoolSlots(), packageConfig.getPublicSchoolSlots());
+
+            Set<University> universities = applyPackageConstraints(
+                    eligiblePrograms, alternativePrograms, universityType, packageConfig);
+            
+            log.info("📊 Step 6 Complete: Final university count after constraints: {}", universities.size());
 
             // 7. Persist results
             log.debug("🔄 Step 7: Persisting eligibility results...");
             EligibilityRecord record = persistEligibilityResults(
                     userId, checkExamRecordId, categoryNames,
-                    universities, eligiblePrograms, alternativePrograms, evaluationResults);
+                    universities, eligiblePrograms, alternativePrograms, evaluationResults, packageConfig);
             log.info("📊 Step 7 Complete: EligibilityRecord saved | id={}", record.getId());
 
             // 8. Map to API response DTO
@@ -165,6 +177,60 @@ public class EligibilityService {
                 ));
     }
 
+    private Set<University> applyPackageConstraints(
+            Map<University, List<ProgramEvaluationResult>> eligible,
+            Map<University, List<ProgramEvaluationResult>> alternative,
+            String requestedType,
+            PackageConfiguration config) {
+
+        // 1. Initial list of all universities with any results
+        Set<University> allUnis = Stream.concat(
+                eligible.keySet().stream(),
+                alternative.keySet().stream()
+        ).collect(Collectors.toSet());
+
+        // 2. Apply Visibility Constraint
+        log.debug("Applying visibility constraint: {}", config.getVisibility());
+        Stream<University> filteredStream = allUnis.stream();
+        switch (config.getVisibility()) {
+            case PRIVATE_ONLY:
+                filteredStream = filteredStream.filter(u -> u.getType() == UniversityType.PRIVATE);
+                break;
+            case PUBLIC_ONLY:
+                filteredStream = filteredStream.filter(u -> u.getType() == UniversityType.PUBLIC);
+                break;
+            case BOTH:
+            default:
+                // No extra filtering
+                break;
+        }
+
+        // 3. Apply requested type filter (if any)
+        if (StringUtils.hasText(requestedType)) {
+            filteredStream = filteredStream.filter(u -> u.getType().name().equalsIgnoreCase(requestedType));
+        }
+
+        List<University> filteredUnis = filteredStream.collect(Collectors.toList());
+
+        // 4. Apply Quotas (Slots)
+        // We separate them to apply slots independently
+        List<University> privateUnis = filteredUnis.stream()
+                .filter(u -> u.getType() == UniversityType.PRIVATE)
+                .limit(config.getPrivateSchoolSlots() != null ? config.getPrivateSchoolSlots() : Integer.MAX_VALUE)
+                .collect(Collectors.toList());
+
+        List<University> publicUnis = filteredUnis.stream()
+                .filter(u -> u.getType() == UniversityType.PUBLIC)
+                .limit(config.getPublicSchoolSlots() != null ? config.getPublicSchoolSlots() : Integer.MAX_VALUE)
+                .collect(Collectors.toList());
+
+        Set<University> finalUnis = new HashSet<>();
+        finalUnis.addAll(privateUnis);
+        finalUnis.addAll(publicUnis);
+
+        return finalUnis;
+    }
+
     private Set<University> filterUniversitiesByType(
             Map<University, List<ProgramEvaluationResult>> eligible,
             Map<University, List<ProgramEvaluationResult>> alternative,
@@ -191,7 +257,8 @@ private EligibilityRecord persistEligibilityResults(
         Set<University> universities,
         Map<University, List<ProgramEvaluationResult>> eligiblePrograms,
         Map<University, List<ProgramEvaluationResult>> alternativePrograms,
-        List<ProgramEvaluationResult> allResults) {
+        List<ProgramEvaluationResult> allResults,
+        PackageConfiguration packageConfig) {
 
     log.info("📥 START: persistEligibilityResults | userId={} | recordId={}", userId, checkExamRecordId);
 
@@ -255,7 +322,7 @@ private EligibilityRecord persistEligibilityResults(
                 .map(uni -> {
                     log.debug("🏫 Processing university: {}", uni.getName());
                     return buildUniversityEligibility(
-                            uni, eligiblePrograms, alternativePrograms, allResults, record, userId, programCategoryNamesMap);
+                            uni, eligiblePrograms, alternativePrograms, allResults, record, userId, programCategoryNamesMap, packageConfig);
                 })
                 .collect(Collectors.toList());
 
@@ -283,7 +350,8 @@ private EligibilityRecord persistEligibilityResults(
             List<ProgramEvaluationResult> allResults,
             EligibilityRecord record,
             String userId,
-            Map<Long, List<String>> programCategoryNamesMap) {
+            Map<Long, List<String>> programCategoryNamesMap,
+            PackageConfiguration config) {
 
         UniversityEligibility uniElig = new UniversityEligibility();
         uniElig.setId(UUID.randomUUID().toString());
@@ -293,17 +361,24 @@ private EligibilityRecord persistEligibilityResults(
         uniElig.setType(university.getType().name());
         uniElig.setEligibilityRecord(record);
 
-        // Build eligible programs list
+        // Determine program quota for this university type
+        int programLimit = (university.getType() == UniversityType.PRIVATE) 
+                ? (config.getProgramsPerPrivateUniversity() != null ? config.getProgramsPerPrivateUniversity() : Integer.MAX_VALUE)
+                : (config.getProgramsPerPublicUniversity() != null ? config.getProgramsPerPublicUniversity() : Integer.MAX_VALUE);
+
+        // Build eligible programs list with quota
         List<EligibleProgram> eligibleProgramsList = eligiblePrograms
                 .getOrDefault(university, List.of())
                 .stream()
+                .limit(programLimit)
                 .map(result -> createEligibleProgram(result, uniElig, programCategoryNamesMap))
                 .collect(Collectors.toList());
 
-        // Build alternative programs list
+        // Build alternative programs list with quota
         List<AlternativeProgram> alternativeProgramsList = alternativePrograms
                 .getOrDefault(university, List.of())
                 .stream()
+                .limit(Math.max(0, programLimit - eligibleProgramsList.size())) 
                 .map(result -> createAlternativeProgram(result, uniElig, programCategoryNamesMap))
                 .collect(Collectors.toList());
 
