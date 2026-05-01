@@ -11,6 +11,7 @@ import com.alibou.book.Entity.Program;
 import com.alibou.book.Entity.SubjectRequirement;
 import com.alibou.book.utillities.EligibilityUtils;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -20,6 +21,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ProgramEvaluationService {
 
     private final SubjectEvaluationService subjectEvaluationService;
@@ -30,6 +32,8 @@ public class ProgramEvaluationService {
     public ProgramEvaluationResult evaluateProgram(
             Program program,
             Map<String, String> candidateGrades) {
+
+        log.debug("🧪 Evaluating program: {} | university: {}", program.getName(), program.getUniversity().getName());
 
         Map<String, String> programCores = program.getCoreSubjects() != null
                 ? program.getCoreSubjects()
@@ -60,6 +64,9 @@ public class ProgramEvaluationService {
 
         String decision = determineDecision(isEligible, isAlternative, allCoresMet, allGroupsMet, percentage);
         List<String> recommendations = generateRecommendations(coreResults, groupResults, allCoresMet);
+
+        log.debug("✅ Evaluation result for {}: isEligible={} | isAlternative={} | percentage={}%", 
+                program.getName(), isEligible, isAlternative, String.format("%.2f", percentage));
 
         return ProgramEvaluationResult.builder()
                 .program(program)

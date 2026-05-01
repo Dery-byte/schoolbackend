@@ -11,6 +11,7 @@ import com.alibou.book.user.User;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.web.bind.annotation.*;
@@ -23,6 +24,7 @@ import java.util.stream.Collectors;
 @RequestMapping("/auth")
 @CrossOrigin(origins = "*")
 @RequiredArgsConstructor
+@Slf4j
 public class EligibilityController {
 
     private final UserDetailsService userDetailsService;
@@ -42,23 +44,35 @@ public class EligibilityController {
             @Valid @RequestBody EligibilityCheckRequest request,
             Principal principal) {
 
-        User user = (User) userDetailsService.loadUserByUsername(principal.getName());
+        log.info("🚀 Received eligibility check request | userId={} | recordId={} | categories={}",
+                principal.getName(), request.getCheckRecordId(), request.getCategoryIds());
 
-        ExamCheckRecord examRecord = examCheckRecordRepository.findById(request.getCheckRecordId())
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "ExamCheckRecord not found: " + request.getCheckRecordId()));
+        try {
+            User user = (User) userDetailsService.loadUserByUsername(principal.getName());
 
-        WaecCandidateEntity candidate = buildCandidateFromRequest(request, examRecord);
+            ExamCheckRecord examRecord = examCheckRecordRepository.findById(request.getCheckRecordId())
+                    .orElseThrow(() -> {
+                        log.error("❌ ExamCheckRecord not found: {}", request.getCheckRecordId());
+                        return new EntityNotFoundException("ExamCheckRecord not found: " + request.getCheckRecordId());
+                    });
 
-        EligibilityApiResponse response = eligibilityService.checkEligibilityWithDetails(
-                candidate,
-                request.getUniversityType(),
-                String.valueOf(user.getId()),
-                request.getCheckRecordId(),
-                request.getCategoryIds()
-        );
+            WaecCandidateEntity candidate = buildCandidateFromRequest(request, examRecord);
 
-        return ResponseEntity.ok(response);
+            log.debug("🏃 Calling EligibilityService.checkEligibilityWithDetails...");
+            EligibilityApiResponse response = eligibilityService.checkEligibilityWithDetails(
+                    candidate,
+                    request.getUniversityType(),
+                    String.valueOf(user.getId()),
+                    request.getCheckRecordId(),
+                    request.getCategoryIds()
+            );
+
+            log.info("✅ Eligibility check successful for user: {}", principal.getName());
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("💥 CRITICAL ERROR in checkEligibility: {}", e.getMessage(), e);
+            throw e;
+        }
     }
 
 

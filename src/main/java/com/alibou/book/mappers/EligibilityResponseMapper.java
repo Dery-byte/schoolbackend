@@ -3,6 +3,7 @@ package com.alibou.book.mappers;
 import com.alibou.book.DTO.EligibilityDTOs.*;
 import com.alibou.book.Entity.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -13,6 +14,7 @@ import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class EligibilityResponseMapper {
 
     /**
@@ -24,30 +26,44 @@ public class EligibilityResponseMapper {
             Map<String, String> candidateGrades,
             List<ProgramEvaluationResult> allEvaluations) {
 
-        // Create a map for O(1) lookups of evaluation results by program name
-        Map<String, ProgramEvaluationResult> evaluationMap = allEvaluations.stream()
-                .collect(Collectors.toMap(
-                        e -> e.getProgram().getName(),
-                        e -> e,
-                        (e1, e2) -> e1 // In case of duplicate names, keep the first one
-                ));
+        log.info("🗺️ START: Mapping toApiResponse | recordId={} | evaluations={}", record.getId(), allEvaluations.size());
 
-        List<UniversityEligibilityDto> universityDtos = record.getUniversities().stream()
-                .map(uni -> mapUniversityEligibility(uni, evaluationMap))
-                .collect(Collectors.toList());
+        try {
+            // Create a map for O(1) lookups of evaluation results by program name
+            Map<String, ProgramEvaluationResult> evaluationMap = allEvaluations.stream()
+                    .collect(Collectors.toMap(
+                            e -> e.getProgram().getName(),
+                            e -> e,
+                            (e1, e2) -> e1 // In case of duplicate names, keep the first one
+                    ));
 
-        EligibilitySummary summary = buildSummary(universityDtos, allEvaluations);
+            log.debug("🔄 Mapping universities...");
+            List<UniversityEligibilityDto> universityDtos = record.getUniversities().stream()
+                    .map(uni -> {
+                        log.debug("🗺️ Mapping university: {}", uni.getUniversityName());
+                        return mapUniversityEligibility(uni, evaluationMap);
+                    })
+                    .collect(Collectors.toList());
 
-        return EligibilityApiResponse.builder()
-                .recordId(record.getId())
-                .userId(record.getUserId())
-                .candidateName(candidate.getCname())
-                .checkedAt(record.getCreatedAt())
-                .selectedCategories(record.getSelectedCategories())
-                .candidateGrades(candidateGrades)
-                .universities(universityDtos)
-                .summary(summary)
-                .build();
+            log.debug("🔄 Building summary...");
+            EligibilitySummary summary = buildSummary(universityDtos, allEvaluations);
+
+            log.info("✅ END: Mapping toApiResponse successful");
+
+            return EligibilityApiResponse.builder()
+                    .recordId(record.getId())
+                    .userId(record.getUserId())
+                    .candidateName(candidate.getCname())
+                    .checkedAt(record.getCreatedAt())
+                    .selectedCategories(record.getSelectedCategories())
+                    .candidateGrades(candidateGrades)
+                    .universities(universityDtos)
+                    .summary(summary)
+                    .build();
+        } catch (Exception e) {
+            log.error("💥 CRITICAL ERROR in toApiResponse mapping: {}", e.getMessage(), e);
+            throw e;
+        }
     }
 
     private UniversityEligibilityDto mapUniversityEligibility(

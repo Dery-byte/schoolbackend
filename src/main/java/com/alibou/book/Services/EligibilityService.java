@@ -52,43 +52,66 @@ public class EligibilityService {
             String checkExamRecordId,
             List<Long> userSelectedCategoryIds) {
 
-        // 1. Validate input
-        validateInput(candidate, userId, checkExamRecordId, userSelectedCategoryIds);
-        log.info("🔍 Checking eligibility for candidate: {}", candidate.getCname());
+        log.info("🔍 START: checkEligibilityWithDetails | userId={} | recordId={}", userId, checkExamRecordId);
 
-        // 2. Normalize candidate grades
-        Map<String, String> candidateGrades = normalizeCandidateGrades(candidate);
-        log.debug("Normalized candidate subjects: {}", candidateGrades);
+        try {
+            // 1. Validate input
+            validateInput(candidate, userId, checkExamRecordId, userSelectedCategoryIds);
+            log.debug("✅ Step 1: Input validated");
 
-        // 3. Fetch programs from categories (single batch query) + resolve category names
-        Set<Program> programs = fetchProgramsFromCategories(userSelectedCategoryIds);
-        List<String> categoryNames = categoryRepository.findNamesByIds(userSelectedCategoryIds);
+            // 2. Normalize candidate grades
+            Map<String, String> candidateGrades = normalizeCandidateGrades(candidate);
+            log.debug("✅ Step 2: Normalized candidate subjects: {}", candidateGrades);
 
-        // 4. Evaluate all programs
-        List<ProgramEvaluationResult> evaluationResults = programs.stream()
-                .map(program -> programEvaluationService.evaluateProgram(program, candidateGrades))
-                .collect(Collectors.toList());
+            // 3. Fetch programs from categories (single batch query) + resolve category names
+            log.debug("🔄 Step 3: Fetching programs for categories: {}", userSelectedCategoryIds);
+            Set<Program> programs = fetchProgramsFromCategories(userSelectedCategoryIds);
+            List<String> categoryNames = categoryRepository.findNamesByIds(userSelectedCategoryIds);
+            log.info("📊 Step 3 Complete: Fetched {} programs from {} categories", programs.size(), categoryNames.size());
 
-        // 5. Categorize programs by eligibility
-        Map<University, List<ProgramEvaluationResult>> eligiblePrograms = categorizePrograms(
-                evaluationResults, ProgramEvaluationResult::isEligible);
+            // 4. Evaluate all programs
+            log.debug("🔄 Step 4: Evaluating programs...");
+            List<ProgramEvaluationResult> evaluationResults = programs.stream()
+                    .map(program -> programEvaluationService.evaluateProgram(program, candidateGrades))
+                    .collect(Collectors.toList());
+            log.info("📊 Step 4 Complete: Evaluated {} programs", evaluationResults.size());
 
-        Map<University, List<ProgramEvaluationResult>> alternativePrograms = categorizePrograms(
-                evaluationResults, result -> !result.isEligible() && result.isAlternative());
+            // 5. Categorize programs by eligibility
+            log.debug("🔄 Step 5: Categorizing results...");
+            Map<University, List<ProgramEvaluationResult>> eligiblePrograms = categorizePrograms(
+                    evaluationResults, ProgramEvaluationResult::isEligible);
 
-        // 6. Filter by university type if specified
-        Set<University> universities = filterUniversitiesByType(
-                eligiblePrograms, alternativePrograms, universityType);
+            Map<University, List<ProgramEvaluationResult>> alternativePrograms = categorizePrograms(
+                    evaluationResults, result -> !result.isEligible() && result.isAlternative());
+            log.info("📊 Step 5 Complete: {} universities with eligible programs, {} with alternative", 
+                    eligiblePrograms.size(), alternativePrograms.size());
 
-        // 7. Persist results
-        EligibilityRecord record = persistEligibilityResults(
-                userId, checkExamRecordId, categoryNames,
-                universities, eligiblePrograms, alternativePrograms, evaluationResults);
+            // 6. Filter by university type if specified
+            log.debug("🔄 Step 6: Filtering by university type: {}", universityType);
+            Set<University> universities = filterUniversitiesByType(
+                    eligiblePrograms, alternativePrograms, universityType);
+            log.info("📊 Step 6 Complete: Final university count: {}", universities.size());
 
-        log.info("✅ Eligibility check completed for candidate: {}", candidate.getCname());
+            // 7. Persist results
+            log.debug("🔄 Step 7: Persisting eligibility results...");
+            EligibilityRecord record = persistEligibilityResults(
+                    userId, checkExamRecordId, categoryNames,
+                    universities, eligiblePrograms, alternativePrograms, evaluationResults);
+            log.info("📊 Step 7 Complete: EligibilityRecord saved | id={}", record.getId());
 
-        // 8. Map to API response DTO
-        return responseMapper.toApiResponse(record, candidate, candidateGrades, evaluationResults);
+            // 8. Map to API response DTO
+            log.debug("🔄 Step 8: Mapping to API response...");
+            EligibilityApiResponse response = responseMapper.toApiResponse(record, candidate, candidateGrades, evaluationResults);
+            log.info("✅ END: checkEligibilityWithDetails successful for candidate: {}", candidate.getCname());
+
+            return response;
+        } catch (EligibilityException e) {
+            log.warn("⚠️ Eligibility business exception: {}", e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            log.error("💥 CRITICAL ERROR in checkEligibilityWithDetails: {}", e.getMessage(), e);
+            throw e;
+        }
     }
 
     /**
@@ -170,74 +193,86 @@ private EligibilityRecord persistEligibilityResults(
         Map<University, List<ProgramEvaluationResult>> alternativePrograms,
         List<ProgramEvaluationResult> allResults) {
 
-    log.info("📥 persistEligibilityResults called | userId={} | examRecordId={} | universities={} | categories={}",
-            userId, checkExamRecordId, universities.size(), categoryNames);
+    log.info("📥 START: persistEligibilityResults | userId={} | recordId={}", userId, checkExamRecordId);
 
-    ExamCheckRecord examRecord = examCheckRecordRepository.findById(checkExamRecordId)
-            .orElseThrow(() -> {
-                log.error("❌ ExamCheckRecord not found for id={}", checkExamRecordId);
-                return new EntityNotFoundException("ExamCheckRecord not found: " + checkExamRecordId);
-            });
-
-    log.debug("📋 ExamCheckRecord fetched | id={} | currentStatus={} | userId={}",
-            examRecord.getId(), examRecord.getCheckStatus(), examRecord.getUser());
-
-    // Guard against duplicate processing
-    if (CheckStatus.CHECKED.equals(examRecord.getCheckStatus())) {
-        log.warn("⚠️ Duplicate request detected — examRecord {} is already CHECKED. Returning existing eligibility record.", checkExamRecordId);
-        return eligibilityRecordRepository.findByExamCheckRecord(examRecord)
+    try {
+        ExamCheckRecord examRecord = examCheckRecordRepository.findById(checkExamRecordId)
                 .orElseThrow(() -> {
-                    log.error("❌ ExamRecord {} is CHECKED but no EligibilityRecord found — data inconsistency!", checkExamRecordId);
-                    return new EntityNotFoundException("Existing eligibility record not found for examRecord: " + checkExamRecordId);
+                    log.error("❌ ExamCheckRecord not found for id={}", checkExamRecordId);
+                    return new EntityNotFoundException("ExamCheckRecord not found: " + checkExamRecordId);
                 });
-    }
 
-    EligibilityRecord record = new EligibilityRecord();
-    record.setId(UUID.randomUUID().toString());
-    record.setUserId(userId);
-    record.setExamCheckRecord(examRecord);
-    record.setCreatedAt(LocalDateTime.now(ZoneId.of("Africa/Accra")));
-    record.setSelectedCategories(categoryNames);
+        log.debug("📋 ExamCheckRecord fetched | id={} | currentStatus={}", examRecord.getId(), examRecord.getCheckStatus());
 
-    log.debug("🆕 EligibilityRecord created | id={} | userId={} | createdAt={}",
-            record.getId(), record.getUserId(), record.getCreatedAt());
+        // Guard against duplicate processing
+        if (CheckStatus.CHECKED.equals(examRecord.getCheckStatus())) {
+            log.warn("⚠️ Duplicate request detected — examRecord {} is already CHECKED.", checkExamRecordId);
+            return eligibilityRecordRepository.findByExamCheckRecord(examRecord)
+                    .orElseThrow(() -> {
+                        log.error("❌ ExamRecord {} is CHECKED but no EligibilityRecord found — data inconsistency!", checkExamRecordId);
+                        return new EntityNotFoundException("Existing eligibility record not found for examRecord: " + checkExamRecordId);
+                    });
+        }
 
-    try {
-        log.debug("🔄 Updating examRecord status to CHECKED | id={}", checkExamRecordId);
-        examCheckRecordRepository.updateCheckStatus(checkExamRecordId, CheckStatus.CHECKED);
-        log.info("✅ ExamCheckRecord status updated to CHECKED | id={}", checkExamRecordId);
+        EligibilityRecord record = new EligibilityRecord();
+        record.setId(UUID.randomUUID().toString());
+        record.setUserId(userId);
+        record.setExamCheckRecord(examRecord);
+        record.setCreatedAt(LocalDateTime.now(ZoneId.of("Africa/Accra")));
+        record.setSelectedCategories(categoryNames);
+
+        log.debug("🆕 EligibilityRecord initialized | id={}", record.getId());
+
+        try {
+            log.debug("🔄 Updating ExamCheckRecord status to CHECKED...");
+            examCheckRecordRepository.updateCheckStatus(checkExamRecordId, CheckStatus.CHECKED);
+            log.debug("✅ ExamCheckRecord status updated");
+        } catch (Exception e) {
+            log.error("❌ Failed to update CheckStatus for examRecordId={}: {}", checkExamRecordId, e.getMessage());
+            throw e;
+        }
+
+        // Pre-calculate categories for each program to avoid N+1 queries during mapping
+        log.debug("🔄 Pre-calculating program categories...");
+        Map<Long, List<String>> programCategoryNamesMap = allResults.stream()
+                .map(ProgramEvaluationResult::getProgram)
+                .distinct()
+                .collect(Collectors.toMap(
+                        Program::getId,
+                        p -> {
+                            try {
+                                return p.getCategories().stream().map(Category::getName).collect(Collectors.toList());
+                            } catch (Exception e) {
+                                log.error("❌ Error fetching categories for program {}: {}", p.getName(), e.getMessage());
+                                return new ArrayList<>();
+                            }
+                        }
+                ));
+        log.debug("✅ Program categories pre-calculated for {} programs", programCategoryNamesMap.size());
+
+        log.debug("🔄 Building UniversityEligibility list...");
+        List<UniversityEligibility> universityEligibilities = universities.stream()
+                .map(uni -> {
+                    log.debug("🏫 Processing university: {}", uni.getName());
+                    return buildUniversityEligibility(
+                            uni, eligiblePrograms, alternativePrograms, allResults, record, userId, programCategoryNamesMap);
+                })
+                .collect(Collectors.toList());
+
+        record.setUniversities(universityEligibilities);
+        log.debug("✅ Built {} UniversityEligibility objects", universityEligibilities.size());
+
+        try {
+            log.debug("🔄 SAVING EligibilityRecord to database (this may take time)...");
+            EligibilityRecord saved = eligibilityRecordRepository.save(record);
+            log.info("💾 END: persistEligibilityResults successful | id={}", saved.getId());
+            return saved;
+        } catch (Exception e) {
+            log.error("❌ DATABASE SAVE FAILED for EligibilityRecord: {}", e.getMessage(), e);
+            throw e;
+        }
     } catch (Exception e) {
-        log.error("❌ Failed to update CheckStatus for examRecordId={} | error={}", checkExamRecordId, e.getMessage(), e);
-        throw e;
-    }
-
-    // Pre-calculate categories for each program to avoid N+1 queries during mapping
-    Map<Long, List<String>> programCategoryNamesMap = allResults.stream()
-            .map(ProgramEvaluationResult::getProgram)
-            .distinct()
-            .collect(Collectors.toMap(
-                    Program::getId,
-                    p -> p.getCategories().stream().map(Category::getName).collect(Collectors.toList())
-            ));
-
-    List<UniversityEligibility> universityEligibilities = universities.stream()
-            .map(uni -> {
-                log.debug("🏫 Building eligibility for university={} | type={}",
-                        uni.getName(), uni.getType());
-                return buildUniversityEligibility(
-                        uni, eligiblePrograms, alternativePrograms, allResults, record, userId, programCategoryNamesMap);
-            })
-            .collect(Collectors.toList());
-
-    log.info("✅ Built eligibility for {} universities", universityEligibilities.size());
-    record.setUniversities(universityEligibilities);
-
-    try {
-        EligibilityRecord saved = eligibilityRecordRepository.save(record);
-        log.info("💾 EligibilityRecord saved successfully | id={} | universities={}", saved.getId(), universityEligibilities.size());
-        return saved;
-    } catch (Exception e) {
-        log.error("❌ Failed to save EligibilityRecord | examRecordId={} | error={}", checkExamRecordId, e.getMessage(), e);
+        log.error("💥 CRITICAL ERROR in persistEligibilityResults: {}", e.getMessage(), e);
         throw e;
     }
 }

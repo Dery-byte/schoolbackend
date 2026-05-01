@@ -28,46 +28,65 @@ public class GuestEligibilityService {
 
     @Transactional
     public EligibilityApiResponse checkEligibility(GuestEligibilityCheckRequest request) {
-        ExamCheckRecord record = examCheckRecordRepository.findById(request.getCheckRecordId())
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "ExamCheckRecord not found: " + request.getCheckRecordId()));
+        log.info("🚀 START: Guest eligibility check | sessionId={} | recordId={}", 
+                request.getSessionId(), request.getCheckRecordId());
 
-        if (!request.getSessionId().equals(record.getSessionId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid session for this record.");
-        }
+        try {
+            ExamCheckRecord record = examCheckRecordRepository.findById(request.getCheckRecordId())
+                    .orElseThrow(() -> {
+                        log.error("❌ ExamCheckRecord not found: {}", request.getCheckRecordId());
+                        return new EntityNotFoundException("ExamCheckRecord not found: " + request.getCheckRecordId());
+                    });
 
-        if (record.getPaymentStatus() != PaymentStatus.PAID) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Payment not verified. Please complete payment before running eligibility check.");
-        }
+            if (!request.getSessionId().equals(record.getSessionId())) {
+                log.warn("⚠️ Session mismatch | requestSession={} | recordSession={}", 
+                        request.getSessionId(), record.getSessionId());
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid session for this record.");
+            }
 
-        WaecCandidateEntity candidate = buildCandidate(request, record);
+            if (record.getPaymentStatus() != PaymentStatus.PAID) {
+                log.warn("⚠️ Payment not verified for record: {}", request.getCheckRecordId());
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "Payment not verified. Please complete payment before running eligibility check.");
+            }
 
-        String guestUserId = "GUEST_" + request.getSessionId();
-        EligibilityApiResponse response = eligibilityService.checkEligibilityWithDetails(
-                candidate,
-                request.getUniversityType(),
-                guestUserId,
-                request.getCheckRecordId(),
-                request.getCategoryIds()
-        );
+            WaecCandidateEntity candidate = buildCandidate(request, record);
 
-        // Tag the resulting EligibilityRecord as temporary (single UPDATE — no load+save round-trip)
-        if (response != null && response.getRecordId() != null) {
-            eligibilityRecordRepository.tagAsTemporary(
-                    response.getRecordId(),
-                    request.getSessionId(),
-                    record.getPaymentReference()
+            String guestUserId = "GUEST_" + request.getSessionId();
+            log.debug("🏃 Calling eligibilityService.checkEligibilityWithDetails for guest...");
+            EligibilityApiResponse response = eligibilityService.checkEligibilityWithDetails(
+                    candidate,
+                    request.getUniversityType(),
+                    guestUserId,
+                    request.getCheckRecordId(),
+                    request.getCategoryIds()
             );
-        }
 
-        return response;
+            // Tag the resulting EligibilityRecord as temporary (single UPDATE — no load+save round-trip)
+            if (response != null && response.getRecordId() != null) {
+                log.debug("🔄 Tagging EligibilityRecord as temporary | recordId={}", response.getRecordId());
+                eligibilityRecordRepository.tagAsTemporary(
+                        response.getRecordId(),
+                        request.getSessionId(),
+                        record.getPaymentReference()
+                );
+                log.debug("✅ Tagged as temporary successfully");
+            }
+
+            log.info("✅ END: Guest eligibility check successful");
+            return response;
+        } catch (Exception e) {
+            log.error("💥 ERROR in checkEligibility for guest: {}", e.getMessage(), e);
+            throw e;
+        }
     }
 
     @Transactional
     public EligibilityRecord saveTempRecord(GuestSaveTempRequest request) {
+        log.info("💾 START: Saving temporary record | eligibilityRecordId={} | sessionId={}", 
+                request.getEligibilityRecordId(), request.getSessionId());
+
         EligibilityRecord eligRecord = eligibilityRecordRepository.findById(request.getEligibilityRecordId())
-                .orElseThrow(() -> new EntityNotFoundException(
                         "EligibilityRecord not found: " + request.getEligibilityRecordId()));
 
         if (!request.getSessionId().equals(eligRecord.getSessionId())) {
