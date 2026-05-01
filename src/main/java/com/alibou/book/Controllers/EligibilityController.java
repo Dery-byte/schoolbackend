@@ -83,24 +83,35 @@ public class EligibilityController {
             @Valid @RequestBody EligibilityCheckRequest request,
             Principal principal) {
 
-        User user = (User) userDetailsService.loadUserByUsername(principal.getName());
+        log.info("🚀 Received PRIVATE eligibility check request | userId={} | recordId={} | categories={}",
+                principal.getName(), request.getCheckRecordId(), request.getCategoryIds());
 
-        ExamCheckRecord examRecord = examCheckRecordRepository.findById(request.getCheckRecordId())
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "ExamCheckRecord not found: " + request.getCheckRecordId()));
+        try {
+            User user = (User) userDetailsService.loadUserByUsername(principal.getName());
 
-        WaecCandidateEntity candidate = buildCandidateFromRequest(request, examRecord);
+            ExamCheckRecord examRecord = examCheckRecordRepository.findById(request.getCheckRecordId())
+                    .orElseThrow(() -> {
+                        log.error("❌ ExamCheckRecord not found: {}", request.getCheckRecordId());
+                        return new EntityNotFoundException("ExamCheckRecord not found: " + request.getCheckRecordId());
+                    });
 
-        EligibilityApiResponse response = eligibilityService.checkEligibilityWithDetails(
-                candidate,
-"PRIVATE",
-//                request.getUniversityType(),
-                String.valueOf(user.getId()),
-                request.getCheckRecordId(),
-                request.getCategoryIds()
-        );
+            WaecCandidateEntity candidate = buildCandidateFromRequest(request, examRecord);
 
-        return ResponseEntity.ok(response);
+            log.debug("🏃 Calling EligibilityService.checkEligibilityWithDetails for PRIVATE...");
+            EligibilityApiResponse response = eligibilityService.checkEligibilityWithDetails(
+                    candidate,
+                    "PRIVATE",
+                    String.valueOf(user.getId()),
+                    request.getCheckRecordId(),
+                    request.getCategoryIds()
+            );
+
+            log.info("✅ PRIVATE Eligibility check successful for user: {}", principal.getName());
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("💥 CRITICAL ERROR in checkPrivateEligibility: {}", e.getMessage(), e);
+            throw e;
+        }
     }
 
 

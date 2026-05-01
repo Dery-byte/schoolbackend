@@ -87,6 +87,7 @@ public class GuestEligibilityService {
                 request.getEligibilityRecordId(), request.getSessionId());
 
         EligibilityRecord eligRecord = eligibilityRecordRepository.findById(request.getEligibilityRecordId())
+                .orElseThrow(() -> new EntityNotFoundException(
                         "EligibilityRecord not found: " + request.getEligibilityRecordId()));
 
         if (!request.getSessionId().equals(eligRecord.getSessionId())) {
