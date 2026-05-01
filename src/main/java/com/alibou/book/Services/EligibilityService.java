@@ -374,12 +374,12 @@ private EligibilityRecord persistEligibilityResults(
         StringBuilder explanation = new StringBuilder();
         explanation.append(result.getOverallDecision()).append("\n\n");
 
-        explanation.append("📚 CORE SUBJECTS ANALYSIS:\n");
+        explanation.append("CORE SUBJECTS ANALYSIS:\n");
         result.getCoreSubjectResults().forEach(core ->
                 explanation.append("  ").append(core.getMessage()).append("\n"));
 
         if (!result.getAlternativeGroupResults().isEmpty()) {
-            explanation.append("\n🔄 ALTERNATIVE REQUIREMENTS:\n");
+            explanation.append("\nALTERNATIVE REQUIREMENTS:\n");
             result.getAlternativeGroupResults().forEach(group -> {
                 explanation.append("  ").append(group.getSummaryMessage()).append("\n");
                 group.getSubjectComparisons().forEach(subj ->
@@ -388,13 +388,12 @@ private EligibilityRecord persistEligibilityResults(
         }
 
         if (!result.getRecommendations().isEmpty()) {
-            explanation.append("\n💡 RECOMMENDATIONS:\n");
+            explanation.append("\nRECOMMENDATIONS:\n");
             result.getRecommendations().forEach(rec ->
                     explanation.append("  ").append(rec).append("\n"));
         }
 
         AIRecommendation aiRec = new AIRecommendation();
-//        aiRec.setId(UUID.randomUUID().toString());
         aiRec.setRecommendationText(explanation.toString().trim());
         aiRec.setConfidenceScore(calculateConfidenceScore(result));
 

@@ -76,7 +76,7 @@ public class SubjectEvaluationService {
                     .groupSubjects(List.of())
                     .groupMet(true)
                     .subjectComparisons(List.of())
-                    .summaryMessage("⚠️ Empty group - skipped")
+                    .summaryMessage("Empty group - skipped")
                     .build();
         }
 
@@ -139,47 +139,43 @@ public class SubjectEvaluationService {
             SubjectComparison.ComparisonStatus status) {
 
         if (candidate == null || candidate.equals("N/A")) {
-            return String.format("❌ %s: Missing (Required: %s)", subject, required);
+            return String.format("MISSING - %s: (Required: %s)", subject, required);
         }
 
         switch (status) {
             case EXCELLENT:
-                return String.format("✅ %s: %s (Required: %s) - Excellent!", subject, candidate, required);
+                return String.format("PASS - %s: %s (Required: %s) - Excellent!", subject, candidate, required);
             case PASS:
-                return String.format("✅ %s: %s (Required: %s) - Pass", subject, candidate, required);
+                return String.format("PASS - %s: %s (Required: %s)", subject, candidate, required);
             case MARGINAL:
-                return String.format("⚠️ %s: %s (Required: %s) - Close but below", subject, candidate, required);
+                return String.format("MARGINAL - %s: %s (Required: %s) - Close but below", subject, candidate, required);
             case FAIL:
-                return String.format("❌ %s: %s (Required: %s) - Does not meet requirement", subject, candidate, required);
-            default:
-                return String.format("⚠️ %s: %s vs %s", subject, candidate, required);
-        }
+                return String.format("FAIL - %s: %s (Required: %s) - Does not meet requirement", subject, candidate, required);
+        default:
+            return String.format("CHECK - %s: %s vs %s", subject, candidate, required);
     }
+}
 
-    private String buildGroupSummary(
-            boolean anyOf,
-            boolean groupMet,
-            List<SubjectComparison> comparisons,
-            List<String> allGroupSubjects) {
+private String buildGroupSummary(
+        boolean anyOf,
+        boolean groupMet,
+        List<SubjectComparison> comparisons,
+        List<String> allGroupSubjects) {
 
-        if (comparisons.isEmpty()) {
-            return String.format("❌ None of the subjects in this group qualify: %s", allGroupSubjects);
-        }
+    long metCount = comparisons.stream().filter(SubjectComparison::isMeetRequirement).count();
 
-        long metCount = comparisons.stream().filter(SubjectComparison::isMeetRequirement).count();
-
-        if (anyOf) {
-            return groupMet
-                    ? String.format("✅ Elective requirement satisfied — %d of %d subjects qualified",
-                    metCount, comparisons.size())
-                    : String.format("❌ Elective requirement not met — no qualifying subjects found (%d checked)",
-                    comparisons.size());
-        } else {
-            return groupMet
-                    ? String.format("✅ All required elective subjects passed (%d of %d)",
-                    comparisons.size(), comparisons.size())
-                    : String.format("❌ Not all required elective subjects passed — only %d of %d met the grade",
-                    metCount, comparisons.size());
-        }
+    if (anyOf) {
+        return groupMet
+                ? String.format("SUCCESS: Elective requirement satisfied - %d of %d subjects qualified",
+                metCount, comparisons.size())
+                : String.format("FAILED: Elective requirement not met - no qualifying subjects found (%d checked)",
+                comparisons.size());
+    } else {
+        return groupMet
+                ? String.format("SUCCESS: All required elective subjects passed (%d of %d)",
+                comparisons.size(), comparisons.size())
+                : String.format("FAILED: Not all required elective subjects passed - only %d of %d met the grade",
+                metCount, comparisons.size());
     }
+}
 }

@@ -118,15 +118,15 @@ public class ProgramEvaluationService {
             double percentage) {
 
         if (isEligible) {
-            return String.format("✅ ELIGIBLE - %.2f%% (All requirements met)", percentage);
+            return String.format("ELIGIBLE - %.2f%% (All requirements met)", percentage);
         } else if (isAlternative) {
-            return String.format("⚠️ ALTERNATIVE - %.2f%% (Consider as backup option)", percentage);
+            return String.format("ALTERNATIVE - %.2f%% (Consider as backup option)", percentage);
         } else if (!allCoresMet) {
-            return String.format("❌ NOT ELIGIBLE - %.2f%% (Core subjects not met)", percentage);
+            return String.format("NOT ELIGIBLE - %.2f%% (Core subjects not met)", percentage);
         } else if (!allGroupsMet) {
-            return String.format("❌ NOT ELIGIBLE - %.2f%% (Alternative requirements not met)", percentage);
+            return String.format("NOT ELIGIBLE - %.2f%% (Alternative requirements not met)", percentage);
         } else {
-            return String.format("❌ NOT ELIGIBLE - %.2f%%", percentage);
+            return String.format("NOT ELIGIBLE - %.2f%%", percentage);
         }
     }
 
@@ -143,7 +143,7 @@ public class ProgramEvaluationService {
                 .collect(Collectors.toList());
 
         if (!missingCores.isEmpty()) {
-            recommendations.add("📋 Missing core subjects: " +
+            recommendations.add("Missing core subjects: " +
                     missingCores.stream()
                             .map(SubjectComparison::getSubjectName)
                             .collect(Collectors.joining(", ")));
@@ -155,7 +155,7 @@ public class ProgramEvaluationService {
                 .collect(Collectors.toList());
 
         if (!marginalSubjects.isEmpty()) {
-            recommendations.add("💡 You're close in: " +
+            recommendations.add("You're close in: " +
                     marginalSubjects.stream()
                             .map(s -> s.getSubjectName() + " (need " + s.getRequiredGrade() + ", have " + s.getCandidateGrade() + ")")
                             .collect(Collectors.joining(", ")));
@@ -167,7 +167,7 @@ public class ProgramEvaluationService {
                 .collect(Collectors.toList());
 
         if (!excellentSubjects.isEmpty()) {
-            recommendations.add("⭐ Strong performance in: " +
+            recommendations.add("Strong performance in: " +
                     excellentSubjects.stream()
                             .map(SubjectComparison::getSubjectName)
                             .collect(Collectors.joining(", ")));
@@ -178,7 +178,7 @@ public class ProgramEvaluationService {
                 .filter(g -> !g.isGroupMet() && !g.getSubjectComparisons().isEmpty())
                 .forEach(g -> {
                     if (g.getGroupType().equals("anyOf")) {
-                        recommendations.add("📚 For alternative requirement, consider improving any of: " +
+                        recommendations.add("For alternative requirement, consider improving any of: " +
                                 String.join(", ", g.getGroupSubjects()));
                     }
                 });
