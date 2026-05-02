@@ -14,6 +14,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.UnsupportedEncodingException;
+import java.util.List;
+import com.alibou.book.DTO.UserWithReportsDTO;
 
 @RestController
 @RequestMapping("auth")
@@ -89,5 +91,15 @@ public class AuthenticationController {
     @GetMapping("/count")
     public long getNonAdminCount() {
         return service.countNonAdminUsers();
+    }
+
+    @GetMapping("/users")
+    public ResponseEntity<List<User>> getAllUsers() {
+        return ResponseEntity.ok(service.findAllUsers());
+    }
+
+    @GetMapping("/users-with-reports")
+    public ResponseEntity<List<UserWithReportsDTO>> getAllUsersWithReports() {
+        return ResponseEntity.ok(service.findAllUsersWithReports());
     }
 }

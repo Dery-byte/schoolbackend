@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${subject}">Message from Elygrad</title>
+    <style type="text/css">
+        body, p, h1, h2, h3 { margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #1a1a1a;
+            background-color: #f8fafc;
+        }
+        .email-container {
+            max-width: 600px;
+            margin: 32px auto;
+            background: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.07);
+        }
+        .email-header {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+            padding: 32px 20px;
+            text-align: center;
+        }
+        .email-header h1 { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+        .email-header p { opacity: 0.85; font-size: 14px; }
+        .email-content { padding: 32px; }
+        .email-content p { margin-bottom: 16px; color: #374151; }
+        .message-body {
+            background: #f8fafc;
+            border-left: 4px solid #4f46e5;
+            padding: 20px 24px;
+            border-radius: 6px;
+            margin: 24px 0;
+            white-space: pre-wrap;
+            color: #1e293b;
+        }
+        .email-footer {
+            padding: 24px;
+            text-align: center;
+            background: #f1f5f9;
+            font-size: 13px;
+            color: #64748b;
+            border-top: 1px solid #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+<div class="email-container">
+    <div class="email-header">
+        <h1>Elygrad — University Eligibility Platform</h1>
+        <p>A message from the Elygrad Team</p>
+    </div>
+    <div class="email-content">
+        <p>Dear <strong th:text="${recipientName}">Student</strong>,</p>
+        <div class="message-body" th:text="${messageBody}">Your message here.</div>
+        <p>If you have any questions, feel free to reach out to us at <a href="mailto:optimusinforservice@gmail.com" style="color:#4f46e5;">optimusinforservice@gmail.com</a>.</p>
+        <p>Best regards,<br><strong>The Elygrad Team</strong></p>
+    </div>
+    <div class="email-footer">
+        <p>© 2026 Elygrad. All rights reserved.</p>
+        <p>Ghana University Eligibility Checking Platform</p>
+    </div>
+</div>
+</body>
+</html>

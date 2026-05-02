@@ -11,6 +11,8 @@ import com.alibou.book.exception.ResetPasswordTokenAlreadyUsedException;
 import com.alibou.book.exception.ResetPasswordTokenExpiredException;
 import com.alibou.book.role.RoleRepository;
 import com.alibou.book.security.JwtService;
+import com.alibou.book.DTO.UserWithReportsDTO;
+import com.alibou.book.Repositories.EligibilityRecordRepository;
 import com.alibou.book.user.Token;
 import com.alibou.book.user.TokenRepository;
 import com.alibou.book.user.User;
@@ -50,6 +52,7 @@ public class AuthenticationService {
     private final EmailService emailService;
     private final TokenRepository tokenRepository;
     private final MNotifyV2SmsService mNotifyV2SmsService;
+    private final EligibilityRecordRepository eligibilityRecordRepository;
 
 
     @Value("${application.mailing.frontend.activation-url}")
@@ -315,4 +318,17 @@ public class AuthenticationService {
         // or: return userRepository.countByRoles_NameNot("ROLE_ADMIN");
     }
 
+    public List<User> findAllUsers() {
+        return userRepository.findAll();
+    }
+
+    public List<UserWithReportsDTO> findAllUsersWithReports() {
+        List<User> users = userRepository.findAll();
+        return users.stream()
+                .map(user -> {
+                    var reports = eligibilityRecordRepository.findByUserId(String.valueOf(user.getId()));
+                    return UserWithReportsDTO.fromUser(user, reports);
+                })
+                .toList();
+    }
 }
