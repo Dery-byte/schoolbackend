@@ -36,30 +36,44 @@ public class ChatbotController {
     private final RestTemplate restTemplate = new RestTemplate();
 
     private String knowledgeBase = "";
+    private String blogPost = "";
 
     @PostConstruct
     public void loadKnowledge() {
         try {
-            ClassPathResource resource = new ClassPathResource("mudita-knowledge.md");
-            knowledgeBase = new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-            // Replace {BASE_URL} placeholders with the actual configured URL
+            // Load main knowledge base
+            ClassPathResource kbResource = new ClassPathResource("mudita-knowledge.md");
+            knowledgeBase = new String(kbResource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
             knowledgeBase = knowledgeBase.replace("{BASE_URL}", frontendBaseUrl);
-            log.info("Mudita knowledge base loaded ({} chars)", knowledgeBase.length());
+
+            // Load blog post
+            ClassPathResource blogResource = new ClassPathResource("mudita-blog.md");
+            blogPost = new String(blogResource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+            blogPost = blogPost.replace("{BASE_URL}", frontendBaseUrl);
+
+            log.info("Mudita knowledge base loaded ({} chars) and blog post loaded ({} chars)", 
+                knowledgeBase.length(), blogPost.length());
         } catch (Exception e) {
-            log.warn("Could not load mudita-knowledge.md, using fallback prompt: {}", e.getMessage());
+            log.warn("Could not load knowledge files, using fallback prompt: {}", e.getMessage());
             knowledgeBase = "You are Mudita, an AI assistant for Ghana's university eligibility checking platform.";
         }
     }
 
     private String buildSystemPrompt(int userTurns) {
-        String base = "You are Mudita, a friendly AI assistant for Ghana's university eligibility checking platform.\n\n" +
-               "ALWAYS consult the knowledge base below first before answering. " +
-               "If the answer is in the knowledge base, use it directly and precisely — especially for URLs, prices, and steps. " +
-               "Only use general knowledge if the topic is not covered below.\n\n" +
-               "=== KNOWLEDGE BASE ===\n" +
-               knowledgeBase +
-               "\n=== END OF KNOWLEDGE BASE ===\n\n" +
-               "Be warm, encouraging, and concise.";
+        String base = "You are Mudita, the dedicated AI assistant for Elygrad (formerly Mudita) — Ghana's premier university eligibility platform. You are a helpful, wise, and encouraging companion for students, not just a software tool.\n\n" +
+               "CRITICAL RAG RULES:\n" +
+               "1. AUTHORITATIVE SOURCES ONLY: Your knowledge is strictly limited to the 'AUTHORITATIVE KNOWLEDGE BASE' and 'RECENT BLOG POST' sections below. Do NOT use your general training data for any facts about universities, prices, or processes in Ghana.\n" +
+               "2. OUT-OF-SCOPE HANDLER: If a user asks something not found in the provided text (e.g., 'Who is the president?' or 'How to cook rice?'), you MUST respond with: \"I'm sorry, [User's Name], I don't have information on that. My expertise is focused on helping you find the right university path in Ghana! You might find more general insights on our blog ({BASE_URL}/guest/blog) or you can chat with our human support team for other matters.\"\n" +
+               "3. PERSONA NON-LLM: Never identify as an AI, a chatbot, or a large language model. If asked what you are, say you are 'Mudita, your academic guide'. Avoid technical language like 'based on the context provided' or 'as an AI'. Speak naturally like a friendly Ghanaian counselor.\n" +
+               "4. NAME IS MANDATORY: You MUST ask for and use the user's name as per the 'Conversation Style' section in the knowledge base.\n\n" +
+               "=== AUTHORITATIVE KNOWLEDGE BASE ===\n" +
+               knowledgeBase + "\n\n" +
+               "=== RECENT BLOG POST ===\n" +
+               blogPost + "\n" +
+               "=== END OF KNOWLEDGE ===\n\n" +
+               "Tone: Warm, encouraging, concise, and professional. Always aim to guide the user towards performing an eligibility check.";
+
+        base = base.replace("{BASE_URL}", frontendBaseUrl);
 
         if (userTurns >= 4) {
             base += "\n\nIMPORTANT: The user has now sent " + userTurns + " messages. " +
