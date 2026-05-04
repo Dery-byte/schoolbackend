@@ -73,6 +73,12 @@ public class User implements UserDetails, Principal {
     @Column(name = "discount_check_threshold")
     private Integer discountCheckThreshold;
     
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "user_discount_history", joinColumns = @JoinColumn(name = "user_id"))
+    @Column(name = "discount_amount")
+    @Builder.Default
+    private List<Double> historicalDiscountAmounts = new ArrayList<>();
+    
     @ManyToMany(fetch = EAGER)
     @Builder.Default
     private List<Role> roles = new ArrayList<>(); // ✅ always initialized

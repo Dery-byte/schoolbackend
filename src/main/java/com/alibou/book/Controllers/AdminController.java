@@ -10,6 +10,7 @@ import com.alibou.book.Services.EligibilityReportService;
 import com.alibou.book.Services.SystemSettingService;
 import com.alibou.book.email.EmailService;
 import com.alibou.book.email.EmailTemplateName;
+import com.alibou.book.Services.MNotifyV2SmsService;
 import com.alibou.book.user.User;
 import com.alibou.book.user.UserRepository;
 import jakarta.mail.MessagingException;
@@ -46,6 +47,10 @@ public class AdminController {
     private final EligibilityRecordRepository eligibilityRecordRepository;
     private final SystemSettingService systemSettingService;
     private final UserRepository userRepository;
+    private final MNotifyV2SmsService smsService;
+
+    @org.springframework.beans.factory.annotation.Value("${application.mailing.frontend.baseUrl}")
+    private String frontendUrl;
 
     /**
      * Admin report download — no ownership check.
@@ -196,6 +201,11 @@ public class AdminController {
                 }
             }
             
+            boolean sendSms = false;
+            if (request.containsKey("sendSms")) {
+                sendSms = Boolean.parseBoolean(String.valueOf(request.get("sendSms")));
+            }
+            
             if ("AUTOMATIC".equalsIgnoreCase(mode)) {
                 user.setDiscountGenerationMode("AUTOMATIC");
                 if (thresholdStr != null && !thresholdStr.trim().isEmpty()) {
@@ -220,7 +230,44 @@ public class AdminController {
                 user.setDiscountCode(code);
                 user.setDiscountPackage(pkg);
                 user.setDiscountPrice(price);
+                
+                // Track history
+                user.getHistoricalDiscountAmounts().add(price);
+                
                 userRepository.save(user);
+                
+                // Send Email Notification
+                boolean sendEmail = true; // default true for backwards compatibility
+                if (request.containsKey("sendEmail")) {
+                    sendEmail = Boolean.parseBoolean(String.valueOf(request.get("sendEmail")));
+                }
+                
+                if (sendEmail) {
+                    try {
+                        Map<String, Object> vars = new HashMap<>();
+                        vars.put("homepageUrl", frontendUrl);
+                        vars.put("discountCode", code);
+                        vars.put("discountPackage", pkg);
+                        vars.put("discountPrice", String.valueOf(price));
+                        vars.put("username", user.getFirstname());
+                        
+                        emailService.sendEmail(
+                                user.getUsername(),
+                                EmailTemplateName.DISCOUNT_ASSIGNED,
+                                vars,
+                                "You've received a special discount!"
+                        );
+                    } catch (Exception e) {
+                        log.error("Failed to send discount email to {}: {}", user.getUsername(), e.getMessage());
+                    }
+                }
+                
+                // Send SMS Notification
+                if (sendSms && user.getPhoneNumber() != null && !user.getPhoneNumber().isEmpty()) {
+                    String message = "Hello " + user.getFirstname() + ", you've received a discount code: " + code + ". Visit " + frontendUrl + " to use it!";
+                    smsService.sendSms(List.of(user.getPhoneNumber()), message);
+                }
+                
                 return ResponseEntity.ok(Map.of("message", "Discount code assigned successfully", "discountCode", code, "discountPackage", pkg, "discountPrice", String.valueOf(price)));
             }
         }

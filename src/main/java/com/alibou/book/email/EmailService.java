@@ -44,13 +44,16 @@ public class EmailService {
         helper.setFrom("optimusinforservice@gmail.com", "EduApp Support");
         helper.setReplyTo("emmanuelderryshare@gmail.com");
 
-
+        // Anti-spam headers
+        mimeMessage.setHeader("Message-ID", "<" + java.util.UUID.randomUUID().toString() + "@eduapp.com>");
+        mimeMessage.setHeader("List-Unsubscribe", "<mailto:unsubscribe@eduapp.com>");
+        mimeMessage.setHeader("X-Priority", "3");
 
         helper.setTo(to);
         helper.setSubject(subject);
 
         String template = templateEngine.process(templateName, context);
-        helper.setText(template, true);
+        helper.setText("This email contains important account information. Please view it in an HTML compatible email client.", template);
         mailSender.send(mimeMessage);
     }}
 
