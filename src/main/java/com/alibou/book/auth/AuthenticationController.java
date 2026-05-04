@@ -102,4 +102,13 @@ public class AuthenticationController {
     public ResponseEntity<List<UserWithReportsDTO>> getAllUsersWithReports() {
         return ResponseEntity.ok(service.findAllUsersWithReports());
     }
+
+    @GetMapping("/me")
+    public ResponseEntity<User> getCurrentUser(java.security.Principal principal) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        User user = (User) ((org.springframework.security.core.Authentication) principal).getPrincipal();
+        return ResponseEntity.ok(user);
+    }
 }

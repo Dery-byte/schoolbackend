@@ -41,6 +41,7 @@ public class EligibilityRecord {
     private String sessionId;
 
     @Column(name = "temporary", nullable = false)
+    @Builder.Default
     private Boolean temporary = false;
 
     @Column(name = "payment_reference")

@@ -50,7 +50,31 @@ public class User implements UserDetails, Principal {
 
     private boolean accountLocked;
     private boolean enabled;
+
+    @Column(columnDefinition = "integer default 0")
+    @Builder.Default
+    private Integer eligibilityCheckCount = 0;
+    
+    @Column(columnDefinition = "integer default 0")
+    @Builder.Default
+    private Integer checksSinceLastDiscount = 0;
+    
+    private String discountCode;
+    
+    @Column(name = "discount_package")
+    private String discountPackage;
+    
+    @Column(name = "discount_price")
+    private Double discountPrice;
+    
+    @Column(name = "discount_generation_mode")
+    private String discountGenerationMode; // "MANUAL" or "AUTOMATIC"
+    
+    @Column(name = "discount_check_threshold")
+    private Integer discountCheckThreshold;
+    
     @ManyToMany(fetch = EAGER)
+    @Builder.Default
     private List<Role> roles = new ArrayList<>(); // ✅ always initialized
 //    private List<Role> roles;
 
@@ -58,6 +82,7 @@ public class User implements UserDetails, Principal {
 
 
     @Enumerated(value = EnumType.STRING)
+    @Builder.Default
     // SELF, GOOGLE, FACEBOOK, TWITTER, LINKEDIN, GITHUB
     private Providers provider = Providers.SELF;
     private String providerUserId;

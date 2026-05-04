@@ -43,5 +43,6 @@ public class AlternativeProgram {
     @ElementCollection
     @CollectionTable(name = "alternative_program_categories", joinColumns = @JoinColumn(name = "alternative_program_id"))
     @Column(name = "category")
+    @Builder.Default
     private List<String> categories = new ArrayList<>();
 }

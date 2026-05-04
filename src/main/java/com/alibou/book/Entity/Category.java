@@ -25,5 +25,6 @@ public class Category {
 
     @ManyToMany(mappedBy = "categories")
     @JsonIgnore
+    @Builder.Default
     private Set<Program> programs = new HashSet<>();
 }

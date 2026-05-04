@@ -13,6 +13,8 @@ import com.alibou.book.exception.EligibilityException;
 import com.alibou.book.mappers.EligibilityResponseMapper;
 import com.alibou.book.utillities.EligibilityUtils;
 import com.alibou.book.utillities.SubjectNormalizer;
+import com.alibou.book.user.User;
+import com.alibou.book.user.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -41,6 +43,8 @@ public class EligibilityService {
     private final ProgramEvaluationService programEvaluationService;
     private final EligibilityResponseMapper responseMapper;
     private final PackageConfigurationService packageConfigurationService;
+    private final UserRepository userRepository;
+    private final SystemSettingService systemSettingService;
 
     /**
      * Main method that returns API response with detailed subject comparisons
@@ -114,6 +118,37 @@ public class EligibilityService {
             // 8. Map to API response DTO
             log.debug("🔄 Step 8: Mapping to API response...");
             EligibilityApiResponse response = responseMapper.toApiResponse(record, candidate, candidateGrades, evaluationResults);
+            
+            // 9. Update user check count and assign discount code if threshold reached
+            try {
+                if (userId != null && !userId.isEmpty()) {
+                    Integer uId = Integer.parseInt(userId);
+                    userRepository.findById(uId).ifPresent(user -> {
+                        int currentCount = user.getEligibilityCheckCount() != null ? user.getEligibilityCheckCount() : 0;
+                        user.setEligibilityCheckCount(currentCount + 1);
+                        
+                        int sinceLast = user.getChecksSinceLastDiscount() != null ? user.getChecksSinceLastDiscount() : 0;
+                        user.setChecksSinceLastDiscount(sinceLast + 1);
+                        
+                        String mode = user.getDiscountGenerationMode() != null ? user.getDiscountGenerationMode() : systemSettingService.getSetting("DISCOUNT_MODE", "MANUAL");
+                        int threshold = user.getDiscountCheckThreshold() != null ? user.getDiscountCheckThreshold() : Integer.parseInt(systemSettingService.getSetting("ELIGIBILITY_CHECK_THRESHOLD", "3"));
+                        
+                        if ("AUTOMATIC".equalsIgnoreCase(mode) && user.getChecksSinceLastDiscount() >= threshold 
+                            && user.getDiscountCode() == null) {
+                            String newCode = "DISC-" + java.util.UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+                            user.setDiscountCode(newCode);
+                            user.setDiscountPackage(user.getDiscountPackage() != null ? user.getDiscountPackage() : "PREMIUM");
+                            user.setDiscountPrice(user.getDiscountPrice() != null ? user.getDiscountPrice() : 5.00);
+                            user.setChecksSinceLastDiscount(0); // Reset for the next cycle
+                            log.info("🎉 User {} reached threshold interval ({}), assigned discount code {}", uId, threshold, newCode);
+                        }
+                        userRepository.save(user);
+                    });
+                }
+            } catch (NumberFormatException e) {
+                log.warn("Could not parse userId to integer: {}", userId);
+            }
+
             log.info("✅ END: checkEligibilityWithDetails successful for candidate: {}", candidate.getCname());
 
             return response;

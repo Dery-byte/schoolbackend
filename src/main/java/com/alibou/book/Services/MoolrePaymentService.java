@@ -11,6 +11,7 @@ import com.alibou.book.email.EmailService;
 import com.alibou.book.email.EmailTemplateName;
 import com.alibou.book.exception.PaymentProcessingException;
 import com.alibou.book.user.User;
+import com.alibou.book.user.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
@@ -53,6 +54,7 @@ public class MoolrePaymentService {
     private final UserDetailsService userDetailsService;
     private final SpringTemplateEngine templateEngine;
     private final MNotifyV2SmsService mNotifyV2SmsService;
+    private final UserRepository userRepository;
 
     public User user;
 
@@ -63,7 +65,7 @@ public class MoolrePaymentService {
                                 PaymentStatusRepository paymentStatusRepository, JavaMailSender mailSender,
                                 UserDetailsService userDetailsService, EmailService mailService1,
                                 SpringTemplateEngine templateEngine, MNotifyV2SmsService mNotifyV2SmsService,
-                                ExamCheckRecordRepository examCheckRecordRepository) {
+                                ExamCheckRecordRepository examCheckRecordRepository, UserRepository userRepository) {
         this.config = config;
         this.restTemplate = restTemplate;
         this.objectMapper = objectMapper;
@@ -73,6 +75,7 @@ public class MoolrePaymentService {
         this.templateEngine = templateEngine;
         this.mNotifyV2SmsService = mNotifyV2SmsService;
         this.examCheckRecordRepository = examCheckRecordRepository;
+        this.userRepository = userRepository;
     }
 
     /**
@@ -157,6 +160,7 @@ public MoolrePaymentResponse initiatePayment(Principal principal, MoolrePaymentR
         examCheckRecordRepository.findByExternalRef(externalRef)
                 .ifPresent(record -> {
                     record.setPendingSubscriptionType(request.getSubscriptionType().name());
+                    record.setUsedDiscountCode(request.isUsedDiscountCode());
                     record.setLastUpdated(Instant.now());
                     examCheckRecordRepository.save(record);
                 });
@@ -416,14 +420,23 @@ public MoolrePaymentResponse initiatePayment(Principal principal, MoolrePaymentR
 //                            record.setSubscriptionType(paymentData.getSubscriptionType());
                             record.setSubscriptionType(SubscriptionType.valueOf(record.getPendingSubscriptionType()));
                             record.setPendingSubscriptionType(null); // clear temp
+                            
+                            if (newStatus == PaymentStatus.PAID && record.isUsedDiscountCode() && record.getUser() != null) {
+                                User recordUser = record.getUser();
+                                recordUser.setDiscountCode(null);
+                                recordUser.setDiscountPackage(null);
+                                recordUser.setDiscountPrice(null);
+                                recordUser.setChecksSinceLastDiscount(0);
+                                userRepository.save(recordUser);
+                                logger.info("Discount code used and revoked for user: " + recordUser.getUsername());
+                            }
                             System.out.println(paymentData);
                             // Additional fields can be updated here if needed
                             // record.setTransactionId(paymentData.getTransactionid());
                             // record.setAmount(paymentData.getAmount());
 
                             examCheckRecordRepository.save(record);
-                            logger.info("Updated ExamCheckRecord {} to status {} for externalRef {}"
-                            );
+                            logger.info("Updated ExamCheckRecord {} to status {} for externalRef {}");
                         },
                         () -> logger.warning("No ExamCheckRecord found for externalRef: " + paymentData.getExternalref())
                 );

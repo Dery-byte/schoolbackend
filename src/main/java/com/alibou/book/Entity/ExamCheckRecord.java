@@ -33,6 +33,7 @@ public class ExamCheckRecord {
     private CheckStatus checkStatus;       // e.g., "completed", "not_started"
     private Instant createdAt;
     private Instant lastUpdated;
+    @Builder.Default
     private int checkLimit = 0;
 
 
@@ -46,10 +47,14 @@ private String externalRef;  // Matches PaymentStatuss.externalRef
     private String sessionId;
 
     @Column(name = "temporary", nullable = false)
+    @Builder.Default
     private Boolean temporary = false;
 
     @Column(name = "payment_reference")
     private String paymentReference;
+
+    @Column(columnDefinition = "boolean default false")
+    private boolean usedDiscountCode;
 //
     @OneToOne(cascade = CascadeType.ALL)
     private WaecCandidateEntity waecCandidateEntity;

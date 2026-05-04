@@ -8,6 +8,7 @@ import com.alibou.book.Entity.WaecResultDetailEntity;
 import com.alibou.book.Repositories.ExamCheckRecordRepository;
 import com.alibou.book.Services.EligibilityService;
 import com.alibou.book.user.User;
+import com.alibou.book.user.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +19,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @RestController
@@ -30,6 +33,7 @@ public class EligibilityController {
     private final UserDetailsService userDetailsService;
     private final EligibilityService eligibilityService;
     private final ExamCheckRecordRepository examCheckRecordRepository;
+    private final UserRepository userRepository;
 
     /**
      * POST /auth/check-eligibility
@@ -132,6 +136,46 @@ public class EligibilityController {
 
 
 
+
+    @PostMapping("/discount/validate")
+    public ResponseEntity<Map<String, Object>> validateDiscount(
+            @RequestBody Map<String, String> request,
+            Principal principal) {
+        
+        String code = request.get("discountCode");
+        String subscriptionType = request.get("subscriptionType");
+        
+        if (code == null || code.trim().isEmpty()) {
+            return ResponseEntity.ok(Map.of("valid", false, "message", "Discount code is required"));
+        }
+        
+        if (principal == null) {
+            return ResponseEntity.status(401).body(Map.of("valid", false, "message", "User not authenticated"));
+        }
+        
+        User currentUser = (User) userDetailsService.loadUserByUsername(principal.getName());
+        
+        Optional<User> userWithCodeOpt = userRepository.findAll().stream()
+                .filter(u -> u.getDiscountCode() != null && code.equalsIgnoreCase(u.getDiscountCode().trim()))
+                .findFirst();
+                
+        if (userWithCodeOpt.isEmpty() || !userWithCodeOpt.get().getId().equals(currentUser.getId())) {
+            return ResponseEntity.ok(Map.of("valid", false, "message", "Invalid discount code."));
+        }
+        
+        String requiredPackage = currentUser.getDiscountPackage();
+        if (requiredPackage != null && !requiredPackage.equalsIgnoreCase(subscriptionType) && !requiredPackage.equalsIgnoreCase("ALL")) {
+            return ResponseEntity.ok(Map.of("valid", false, "message", "Discount code is not applicable for this package"));
+        }
+        
+        double discountPrice = currentUser.getDiscountPrice() != null ? currentUser.getDiscountPrice() : 5.00;
+        
+        return ResponseEntity.ok(Map.of(
+            "valid", true,
+            "discountPrice", discountPrice,
+            "message", "Discount applied successfully!"
+        ));
+    }
 
     /**
      * Converts the request DTO to a WaecCandidateEntity, using the ExamCheckRecord for the candidate name.

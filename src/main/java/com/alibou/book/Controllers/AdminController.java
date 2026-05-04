@@ -7,8 +7,11 @@ import com.alibou.book.Entity.EligibilityRecord;
 import com.alibou.book.Repositories.BiodataRepository;
 import com.alibou.book.Repositories.EligibilityRecordRepository;
 import com.alibou.book.Services.EligibilityReportService;
+import com.alibou.book.Services.SystemSettingService;
 import com.alibou.book.email.EmailService;
 import com.alibou.book.email.EmailTemplateName;
+import com.alibou.book.user.User;
+import com.alibou.book.user.UserRepository;
 import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,6 +44,8 @@ public class AdminController {
     private final EmailService emailService;
     private final BiodataRepository biodataRepository;
     private final EligibilityRecordRepository eligibilityRecordRepository;
+    private final SystemSettingService systemSettingService;
+    private final UserRepository userRepository;
 
     /**
      * Admin report download — no ownership check.
@@ -131,5 +136,130 @@ public class AdminController {
         }
 
         return ResponseEntity.ok(result);
+    }
+
+    /**
+     * Admin sets the global eligibility check settings.
+     */
+    @PostMapping("/settings/threshold")
+    public ResponseEntity<Map<String, String>> setThreshold(@RequestBody Map<String, Object> request) {
+        if (request.containsKey("threshold")) {
+            systemSettingService.updateSetting("ELIGIBILITY_CHECK_THRESHOLD", String.valueOf(request.get("threshold")));
+        }
+        if (request.containsKey("discountMode")) {
+            systemSettingService.updateSetting("DISCOUNT_MODE", String.valueOf(request.get("discountMode")));
+        }
+        return ResponseEntity.ok(Map.of("message", "Settings updated successfully"));
+    }
+
+    /**
+     * Admin gets the current global eligibility check settings.
+     */
+    @GetMapping("/settings/threshold")
+    public ResponseEntity<Map<String, Object>> getThreshold() {
+        String thresholdStr = systemSettingService.getSetting("ELIGIBILITY_CHECK_THRESHOLD", "3");
+        String discountMode = systemSettingService.getSetting("DISCOUNT_MODE", "MANUAL");
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("threshold", Integer.parseInt(thresholdStr));
+        response.put("discountMode", discountMode);
+        
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Admin assigns a discount code to a user manually.
+     */
+    @PostMapping("/users/{userId}/discount")
+    public ResponseEntity<Map<String, String>> assignDiscountCode(
+            @PathVariable Integer userId,
+            @RequestBody Map<String, String> request) {
+        Optional<User> userOpt = userRepository.findById(userId);
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            String code = request.get("discountCode");
+            String pkg = request.get("discountPackage");
+            String priceStr = request.get("discountPrice");
+            
+            String mode = request.get("discountMode");
+            String thresholdStr = request.get("discountThreshold");
+            
+            if (pkg == null || pkg.trim().isEmpty()) {
+                pkg = "PREMIUM"; // Default
+            }
+            double price = 5.00;
+            if (priceStr != null && !priceStr.trim().isEmpty()) {
+                try {
+                    price = Double.parseDouble(priceStr);
+                } catch (NumberFormatException e) {
+                    // ignore and use default 5.00
+                }
+            }
+            
+            if ("AUTOMATIC".equalsIgnoreCase(mode)) {
+                user.setDiscountGenerationMode("AUTOMATIC");
+                if (thresholdStr != null && !thresholdStr.trim().isEmpty()) {
+                    try {
+                        user.setDiscountCheckThreshold(Integer.parseInt(thresholdStr));
+                    } catch (NumberFormatException e) {
+                        user.setDiscountCheckThreshold(3); // Default
+                    }
+                } else {
+                    user.setDiscountCheckThreshold(3);
+                }
+                user.setDiscountCode(null); // Clear code until threshold is met
+                user.setDiscountPackage(pkg);
+                user.setDiscountPrice(price);
+                userRepository.save(user);
+                return ResponseEntity.ok(Map.of("message", "Automatic discount generation enabled for user", "discountMode", "AUTOMATIC", "discountPackage", pkg, "discountPrice", String.valueOf(price)));
+            } else {
+                if (code == null || code.trim().isEmpty()) {
+                    code = "DISC-" + java.util.UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+                }
+                user.setDiscountGenerationMode("MANUAL");
+                user.setDiscountCode(code);
+                user.setDiscountPackage(pkg);
+                user.setDiscountPrice(price);
+                userRepository.save(user);
+                return ResponseEntity.ok(Map.of("message", "Discount code assigned successfully", "discountCode", code, "discountPackage", pkg, "discountPrice", String.valueOf(price)));
+            }
+        }
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "User not found"));
+    }
+
+    /**
+     * Admin revokes a discount code from a user.
+     */
+    @DeleteMapping("/users/{userId}/discount")
+    public ResponseEntity<Map<String, String>> revokeDiscountCode(@PathVariable Integer userId) {
+        Optional<User> userOpt = userRepository.findById(userId);
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            user.setDiscountCode(null);
+            user.setDiscountPackage(null);
+            user.setDiscountPrice(null);
+            user.setDiscountGenerationMode("MANUAL");
+            user.setDiscountCheckThreshold(null);
+            user.setChecksSinceLastDiscount(0);
+            userRepository.save(user);
+            return ResponseEntity.ok(Map.of("message", "Discount settings and code revoked successfully"));
+        }
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "User not found"));
+    }
+
+    /**
+     * Admin activates or deactivates a user.
+     */
+    @PutMapping("/users/{userId}/toggle-status")
+    public ResponseEntity<Map<String, String>> toggleUserStatus(@PathVariable Integer userId) {
+        Optional<User> userOpt = userRepository.findById(userId);
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            user.setEnabled(!user.isEnabled());
+            userRepository.save(user);
+            String status = user.isEnabled() ? "Activated" : "Deactivated";
+            return ResponseEntity.ok(Map.of("message", "User successfully " + status, "enabled", String.valueOf(user.isEnabled())));
+        }
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "User not found"));
     }
 }

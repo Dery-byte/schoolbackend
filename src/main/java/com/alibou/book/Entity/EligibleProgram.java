@@ -46,5 +46,6 @@ public class EligibleProgram {
     @ElementCollection
     @CollectionTable(name = "eligible_program_categories", joinColumns = @JoinColumn(name = "eligible_program_id"))
     @Column(name = "category")
+    @Builder.Default
     private List<String> categories = new ArrayList<>();
 }

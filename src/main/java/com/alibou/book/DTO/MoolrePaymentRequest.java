@@ -20,7 +20,9 @@ public class MoolrePaymentRequest {
     private String payer;      // Customer's mobile money number
     private Double amount;     // Amount with 2 decimal places
     private String externalref; // Unique transaction ID
-    private String otpcode;    // Optional OTP code
+    private String otpcode;
+    
+    private boolean usedDiscountCode;    // Optional OTP code
     private String reference;  // Payment reference message
     private String accountnumber; // Your Moolre account number
     private SubscriptionType subscriptionType;
