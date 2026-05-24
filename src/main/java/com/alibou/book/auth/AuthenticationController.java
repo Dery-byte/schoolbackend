@@ -32,7 +32,7 @@ public class AuthenticationController {
     @ResponseStatus(HttpStatus.ACCEPTED)
     public ResponseEntity<?> register(
             @RequestBody @Valid RegistrationRequest request
-    ) throws MessagingException, UnsupportedEncodingException {
+    ) throws MessagingException {
         System.out.println("Received registration request: " + request);
         service.register(request);
         return ResponseEntity.accepted().build();

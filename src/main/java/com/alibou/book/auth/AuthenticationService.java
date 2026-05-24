@@ -61,7 +61,7 @@ public class AuthenticationService {
     @Value("${application.mailing.frontend.baseUrl}")
     private String frontendBaseUrl;
 
-    public void register(RegistrationRequest request) throws MessagingException, UnsupportedEncodingException {
+    public void register(RegistrationRequest request) throws MessagingException {
         var userRole = roleRepository.findByName("USER")
                 // todo - better exception handling
                 .orElseThrow(() -> new IllegalStateException("ROLE USER was not initiated"));
@@ -72,20 +72,19 @@ public class AuthenticationService {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .phoneNumber(request.getPhoneNumber().get(0))
                 .accountLocked(false)
-                .enabled(false)
+                .enabled(true)  // OTP disabled: user activated immediately on registration
                 .roles(List.of(userRole))
                 .build();
         try {
             userRepository.save(user);
-            sendValidationEmail(user);
-        } catch (DataIntegrityViolationException | UnsupportedEncodingException ex) {
+            // OTP/email validation disabled — user is activated immediately
+        } catch (DataIntegrityViolationException ex) {
             // Customize based on your DB constraint name (update accordingly)
             if (ex.getMessage() != null && ex.getMessage().contains("UK_nlcolwbx8ujaen5h0u2kr2bn2")) {
                 throw new DuplicateEmailException("An account with this email already exists.");
             }
             throw ex;
         }
-      //  sendValidationEmail(user);
     }
 
 
