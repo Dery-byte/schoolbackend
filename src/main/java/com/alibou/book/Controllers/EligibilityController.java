@@ -7,8 +7,9 @@ import com.alibou.book.Entity.WaecCandidateEntity;
 import com.alibou.book.Entity.WaecResultDetailEntity;
 import com.alibou.book.Repositories.ExamCheckRecordRepository;
 import com.alibou.book.Services.EligibilityService;
-import com.alibou.book.user.User;
 import com.alibou.book.user.UserRepository;
+import com.alibou.book.user.User;
+import com.alibou.book.Services.SystemSettingService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +35,7 @@ public class EligibilityController {
     private final EligibilityService eligibilityService;
     private final ExamCheckRecordRepository examCheckRecordRepository;
     private final UserRepository userRepository;
+    private final SystemSettingService systemSettingService;
 
     /**
      * POST /auth/check-eligibility
@@ -148,6 +150,7 @@ public class EligibilityController {
         if (code == null || code.trim().isEmpty()) {
             return ResponseEntity.ok(Map.of("valid", false, "message", "Discount code is required"));
         }
+        code = code.trim();
         
         if (principal == null) {
             return ResponseEntity.status(401).body(Map.of("valid", false, "message", "User not authenticated"));
@@ -155,26 +158,55 @@ public class EligibilityController {
         
         User currentUser = (User) userDetailsService.loadUserByUsername(principal.getName());
         
-        Optional<User> userWithCodeOpt = userRepository.findAll().stream()
-                .filter(u -> u.getDiscountCode() != null && code.equalsIgnoreCase(u.getDiscountCode().trim()))
-                .findFirst();
+        // 1. Check individual user discount code
+        User matchedUser = null;
+        for (User u : userRepository.findAll()) {
+            if (u.getDiscountCode() != null && code.equalsIgnoreCase(u.getDiscountCode().trim())) {
+                matchedUser = u;
+                break;
+            }
+        }
                 
-        if (userWithCodeOpt.isEmpty() || !userWithCodeOpt.get().getId().equals(currentUser.getId())) {
-            return ResponseEntity.ok(Map.of("valid", false, "message", "Invalid discount code."));
+        if (matchedUser != null && matchedUser.getId().equals(currentUser.getId())) {
+            String requiredPackage = currentUser.getDiscountPackage();
+            if (requiredPackage != null && !requiredPackage.equalsIgnoreCase(subscriptionType) && !requiredPackage.equalsIgnoreCase("ALL")) {
+                return ResponseEntity.ok(Map.of("valid", false, "message", "Discount code is not applicable for this package"));
+            }
+            
+            double discountPrice = currentUser.getDiscountPrice() != null ? currentUser.getDiscountPrice() : 5.00;
+            
+            return ResponseEntity.ok(Map.of(
+                "valid", true,
+                "discountPrice", discountPrice,
+                "message", "Discount applied successfully!"
+            ));
         }
         
-        String requiredPackage = currentUser.getDiscountPackage();
-        if (requiredPackage != null && !requiredPackage.equalsIgnoreCase(subscriptionType) && !requiredPackage.equalsIgnoreCase("ALL")) {
-            return ResponseEntity.ok(Map.of("valid", false, "message", "Discount code is not applicable for this package"));
+        // 2. Check global promo code if individual code is invalid/not found
+        String globalPromoCode = systemSettingService.getSetting("GLOBAL_PROMO_CODE", "");
+        if (!globalPromoCode.isEmpty() && code.equalsIgnoreCase(globalPromoCode.trim())) {
+            String globalPromoPackage = systemSettingService.getSetting("GLOBAL_PROMO_PACKAGE", "ALL");
+            if (!globalPromoPackage.equalsIgnoreCase(subscriptionType) && !globalPromoPackage.equalsIgnoreCase("ALL")) {
+                return ResponseEntity.ok(Map.of("valid", false, "message", "Global promotion is not applicable for this package"));
+            }
+            
+            String priceStr = systemSettingService.getSetting("GLOBAL_PROMO_DISCOUNTED_PRICE", "5.00");
+            double globalDiscountPrice = 5.00;
+            try {
+                globalDiscountPrice = Double.parseDouble(priceStr);
+            } catch (NumberFormatException e) {
+                // Ignore, keep default
+            }
+            
+            return ResponseEntity.ok(Map.of(
+                "valid", true,
+                "discountPrice", globalDiscountPrice,
+                "message", "Global promotion applied!"
+            ));
         }
-        
-        double discountPrice = currentUser.getDiscountPrice() != null ? currentUser.getDiscountPrice() : 5.00;
-        
-        return ResponseEntity.ok(Map.of(
-            "valid", true,
-            "discountPrice", discountPrice,
-            "message", "Discount applied successfully!"
-        ));
+
+        // Neither matched
+        return ResponseEntity.ok(Map.of("valid", false, "message", "Invalid discount code."));
     }
 
     /**

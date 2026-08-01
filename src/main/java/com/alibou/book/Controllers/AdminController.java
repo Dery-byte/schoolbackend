@@ -22,6 +22,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -292,6 +293,91 @@ public class AdminController {
             return ResponseEntity.ok(Map.of("message", "Discount settings and code revoked successfully"));
         }
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "User not found"));
+    }
+
+    // ──────────────────────────────────────────────────────────
+    //  GLOBAL DISCOUNT BANNER  (stored in system_settings table)
+    // ──────────────────────────────────────────────────────────
+
+    /**
+     * Public endpoint — the login/register page fetches this
+     * to decide whether to show the animated promotion banner.
+     * GET /auth/admin/settings/global-discount
+     */
+    @GetMapping("/settings/global-discount")
+    public ResponseEntity<Map<String, Object>> getGlobalDiscount() {
+        Map<String, Object> result = new HashMap<>();
+        result.put("enabled",     Boolean.parseBoolean(
+                systemSettingService.getSetting("GLOBAL_DISCOUNT_ENABLED", "false")));
+        result.put("percentage",  Integer.parseInt(
+                systemSettingService.getSetting("GLOBAL_DISCOUNT_PERCENTAGE", "0")));
+        result.put("message",     systemSettingService.getSetting("GLOBAL_DISCOUNT_MESSAGE", ""));
+        result.put("expiryDate",  systemSettingService.getSetting("GLOBAL_DISCOUNT_EXPIRY", null));
+        result.put("setAt",       systemSettingService.getSetting("GLOBAL_DISCOUNT_SET_AT", null));
+        
+        // Global Promo fields
+        result.put("promoCode", systemSettingService.getSetting("GLOBAL_PROMO_CODE", ""));
+        result.put("promoPackage", systemSettingService.getSetting("GLOBAL_PROMO_PACKAGE", "ALL"));
+        String priceStr = systemSettingService.getSetting("GLOBAL_PROMO_DISCOUNTED_PRICE", "0");
+        try {
+            result.put("promoDiscountedPrice", Double.parseDouble(priceStr));
+        } catch (NumberFormatException e) {
+            result.put("promoDiscountedPrice", 0.0);
+        }
+
+        return ResponseEntity.ok(result);
+    }
+
+    /**
+     * Admin saves (enables) the global discount banner.
+     * POST /auth/admin/settings/global-discount
+     * Body: { enabled, percentage, message, expiryDate }
+     */
+    @PostMapping("/settings/global-discount")
+    public ResponseEntity<Map<String, String>> saveGlobalDiscount(
+            @RequestBody Map<String, Object> request) {
+        systemSettingService.updateSetting("GLOBAL_DISCOUNT_ENABLED",
+                String.valueOf(request.getOrDefault("enabled", "false")));
+        systemSettingService.updateSetting("GLOBAL_DISCOUNT_PERCENTAGE",
+                String.valueOf(request.getOrDefault("percentage", "0")));
+        systemSettingService.updateSetting("GLOBAL_DISCOUNT_MESSAGE",
+                String.valueOf(request.getOrDefault("message", "")));
+        systemSettingService.updateSetting("GLOBAL_DISCOUNT_EXPIRY",
+                String.valueOf(request.getOrDefault("expiryDate", "")));
+        systemSettingService.updateSetting("GLOBAL_DISCOUNT_SET_AT",
+                Instant.now().toString());
+
+        systemSettingService.updateSetting("GLOBAL_PROMO_CODE", String.valueOf(request.getOrDefault("promoCode", "")));
+        systemSettingService.updateSetting("GLOBAL_PROMO_PACKAGE", String.valueOf(request.getOrDefault("promoPackage", "ALL")));
+        systemSettingService.updateSetting("GLOBAL_PROMO_DISCOUNTED_PRICE", String.valueOf(request.getOrDefault("promoDiscountedPrice", "0")));
+
+        log.info("Global discount banner saved: enabled={}, percentage={}",
+                request.get("enabled"), request.get("percentage"));
+        return ResponseEntity.ok(Map.of("message", "Global discount banner saved successfully"));
+    }
+
+    /**
+     * Admin clears / disables the global discount banner.
+     * DELETE /auth/admin/settings/global-discount
+     */
+    @DeleteMapping("/settings/global-discount")
+    public ResponseEntity<Map<String, String>> clearGlobalDiscount() {
+        systemSettingService.updateSetting("GLOBAL_DISCOUNT_ENABLED", "false");
+        systemSettingService.updateSetting("GLOBAL_DISCOUNT_PERCENTAGE", "0");
+        systemSettingService.updateSetting("GLOBAL_DISCOUNT_MESSAGE", "");
+        systemSettingService.updateSetting("GLOBAL_DISCOUNT_EXPIRY", "");
+        systemSettingService.updateSetting("GLOBAL_DISCOUNT_SET_AT", "");
+        
+        systemSettingService.updateSetting("GLOBAL_PROMO_CODE", "");
+        systemSettingService.updateSetting("GLOBAL_PROMO_PACKAGE", "ALL");
+        systemSettingService.updateSetting("GLOBAL_PROMO_DISCOUNTED_PRICE", "0");
+
+        return ResponseEntity.ok(Map.of("message", "Global discount cleared successfully"));
+    }
+
+    // ── helpers ───────────────────────────────────────────────
+    private int parseIntSafe(String value, int defaultVal) {
+        try { return Integer.parseInt(value); } catch (Exception e) { return defaultVal; }
     }
 
     /**
