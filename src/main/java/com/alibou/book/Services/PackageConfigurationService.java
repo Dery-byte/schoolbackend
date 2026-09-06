@@ -37,6 +37,7 @@ public class PackageConfigurationService {
         existing.setPublicSchoolSlots(config.getPublicSchoolSlots());
         existing.setProgramsPerPrivateUniversity(config.getProgramsPerPrivateUniversity());
         existing.setProgramsPerPublicUniversity(config.getProgramsPerPublicUniversity());
+        existing.setMaxCategorySelection(config.getMaxCategorySelection());
         existing.setVisibility(config.getVisibility());
 
         return repository.save(existing);

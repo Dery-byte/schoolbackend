@@ -14,7 +14,6 @@ spring:
     show-sql: false
     properties:
       hibernate:
-        format_sql: true
         jdbc.batch_size: 50
         order_inserts: true
         order_updates: true
@@ -98,11 +97,11 @@ moolre:
 
 logging:
   level:
-    org.hibernate.SQL: DEBUG
-    org.hibernate.transaction: TRACE
-    org.springframework.mail: DEBUG
-    com.alibou.book.email: DEBUG
-    com.exam: DEBUG
+    org.hibernate.SQL: WARN
+    org.hibernate.transaction: WARN
+    org.springframework.mail: WARN
+    com.alibou.book.email: INFO
+    com.exam: INFO
 mnotify:
   v2:
     url: https://api.mnotify.com/api/sms/quick
