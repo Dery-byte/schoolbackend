@@ -3,8 +3,11 @@ package com.alibou.book.Services;
 import com.alibou.book.Entity.SystemSetting;
 import com.alibou.book.Repositories.SystemSettingRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class SystemSettingService {
@@ -17,10 +20,12 @@ public class SystemSettingService {
                 .orElse(defaultValue);
     }
 
+    @Transactional
     public void updateSetting(String key, String value) {
         SystemSetting setting = repository.findById(key)
-                .orElse(new SystemSetting(key, value));
+                .orElseGet(() -> new SystemSetting(key, value));
         setting.setSettingValue(value);
-        repository.save(setting);
+        repository.saveAndFlush(setting);
+        log.info("System setting saved: {} = {}", key, value);
     }
 }
