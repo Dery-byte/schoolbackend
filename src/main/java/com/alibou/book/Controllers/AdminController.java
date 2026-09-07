@@ -8,6 +8,7 @@ import com.alibou.book.Repositories.BiodataRepository;
 import com.alibou.book.Repositories.EligibilityRecordRepository;
 import com.alibou.book.Services.EligibilityReportService;
 import com.alibou.book.Services.SystemSettingService;
+import com.alibou.book.config.PaystackConfig;
 import com.alibou.book.email.EmailService;
 import com.alibou.book.email.EmailTemplateName;
 import com.alibou.book.Services.MNotifyV2SmsService;
@@ -49,6 +50,7 @@ public class AdminController {
     private final SystemSettingService systemSettingService;
     private final UserRepository userRepository;
     private final MNotifyV2SmsService smsService;
+    private final PaystackConfig paystackConfig;
 
     @org.springframework.beans.factory.annotation.Value("${application.mailing.frontend.baseUrl}")
     private String frontendUrl;
@@ -373,6 +375,49 @@ public class AdminController {
         systemSettingService.updateSetting("GLOBAL_PROMO_DISCOUNTED_PRICE", "0");
 
         return ResponseEntity.ok(Map.of("message", "Global discount cleared successfully"));
+    }
+
+    // ─────────────────────────────────────────────────────────
+    //  PAYMENT GATEWAY TOGGLE
+    // ─────────────────────────────────────────────────────────
+
+    /**
+     * Returns the name of the currently active payment gateway.
+     * GET /auth/admin/settings/payment-gateway
+     */
+    @GetMapping("/settings/payment-gateway")
+    public ResponseEntity<Map<String, String>> getActivePaymentGateway() {
+        String gateway = systemSettingService.getSetting("ACTIVE_PAYMENT_GATEWAY", "MOOLRE");
+        return ResponseEntity.ok(Map.of("gateway", gateway.toUpperCase()));
+    }
+
+    /**
+     * Switches the active payment gateway.
+     * POST /auth/admin/settings/payment-gateway
+     * Body: { "gateway": "PAYSTACK" }  or  { "gateway": "MOOLRE" }
+     */
+    @PostMapping("/settings/payment-gateway")
+    public ResponseEntity<Map<String, String>> setActivePaymentGateway(
+            @RequestBody Map<String, String> request) {
+        String gateway = request.getOrDefault("gateway", "MOOLRE").toUpperCase();
+        if (!"MOOLRE".equals(gateway) && !"PAYSTACK".equals(gateway)) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "Invalid gateway. Allowed values: MOOLRE, PAYSTACK"));
+        }
+        systemSettingService.updateSetting("ACTIVE_PAYMENT_GATEWAY", gateway);
+        log.info("Admin switched active payment gateway to: {}", gateway);
+        return ResponseEntity.ok(Map.of("message", "Active payment gateway set to " + gateway, "gateway", gateway));
+    }
+
+    /**
+     * Returns the Paystack public key so the Angular frontend can initialise the Paystack popup.
+     * This does NOT expose the secret key.
+     * GET /auth/admin/settings/paystack-public-key
+     */
+    @GetMapping("/settings/paystack-public-key")
+    public ResponseEntity<Map<String, String>> getPaystackPublicKey() {
+        String pubKey = paystackConfig.getPublicKey() != null ? paystackConfig.getPublicKey() : "";
+        return ResponseEntity.ok(Map.of("publicKey", pubKey));
     }
 
     // ── helpers ───────────────────────────────────────────────

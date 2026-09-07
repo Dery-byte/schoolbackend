@@ -6,7 +6,10 @@ import lombok.Data;
 
 @Data
 public class GuestPaymentInitiateRequest {
-    @NotBlank(message = "Payer phone number is required")
+    /**
+     * For Moolre: phone number (required).
+     * For Paystack: email address or null (optional — identity comes from user account).
+     */
     private String payer;
 
     private Integer channel;

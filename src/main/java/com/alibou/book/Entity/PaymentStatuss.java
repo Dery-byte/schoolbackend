@@ -5,7 +5,9 @@ import com.alibou.book.user.User;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 
 @Data
@@ -37,7 +39,13 @@ public class PaymentStatuss {
     @JoinColumn(name = "user_id", nullable = true)
     private User user;
 
+    /** Used by Moolre webhook — expects format "yyyy-MM-dd HH:mm:ss". */
     public void setTimestamp(String ts) {
         this.timestamp = LocalDateTime.parse(ts, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+    }
+
+    /** Used by Paystack webhook — sets timestamp from a Java {@link Instant}. */
+    public void setTimestampFromInstant(Instant instant) {
+        this.timestamp = LocalDateTime.ofInstant(instant, ZoneId.systemDefault());
     }
 }

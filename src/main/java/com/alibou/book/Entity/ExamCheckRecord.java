@@ -55,7 +55,7 @@ private String externalRef;  // Matches PaymentStatuss.externalRef
 
     @Column(columnDefinition = "boolean default false")
     private boolean usedDiscountCode;
-//
+// https://3990-156-38-117-34.ngrok-free.app/api/v1/auth/payments/paystackWebhook
     @OneToOne(cascade = CascadeType.ALL)
     private WaecCandidateEntity waecCandidateEntity;
 
