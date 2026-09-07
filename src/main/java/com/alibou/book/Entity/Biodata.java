@@ -36,8 +36,8 @@ public class Biodata {
     private String middleName;
     private  Gender gender;
 
-    @Email(message = "Email should be valid")
-    @Size(min = 1, message = "Email cannot be empty")
+//    @Email(message = "Email should be valid")
+//    @Size(min = 1, message = "Email cannot be empty")
     private String email;
 
     @NotBlank(message = "Phone number is required")

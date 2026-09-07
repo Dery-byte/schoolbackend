@@ -10,6 +10,7 @@ import com.alibou.book.Repositories.PaymentStatusRepository;
 import com.alibou.book.Services.GuestPaymentService;
 import com.alibou.book.Services.PaymentGatewayRouter;
 import com.alibou.book.Services.PaystackPaymentService;
+import com.alibou.book.config.PaystackConfig;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -42,6 +43,7 @@ public class GuestPaymentController {
     private final PaymentGatewayRouter paymentGatewayRouter;
     private final PaymentStatusRepository paymentStatusRepository;
     private final ExamCheckRecordRepository examCheckRecordRepository;
+    private final PaystackConfig paystackConfig;
 
     // ─────────────────────────────────────────────────────────────────────────
     //  INITIATE  — gateway-aware
@@ -106,5 +108,58 @@ public class GuestPaymentController {
                     return ResponseEntity.ok(res);
                 })
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  GATEWAY SETTINGS  — no auth required, used by the guest frontend
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Returns the currently active payment gateway name.
+     * GET /guest/payment/gateway
+     * Response: { "gateway": "MOOLRE" | "PAYSTACK" }
+     */
+    @GetMapping("/gateway")
+    public ResponseEntity<Map<String, String>> getActiveGateway() {
+        String gateway = paymentGatewayRouter.isPaystackActive() ? "PAYSTACK" : "MOOLRE";
+        return ResponseEntity.ok(Map.of("gateway", gateway));
+    }
+
+    /**
+     * Returns the Paystack public key so the guest frontend can initialise the Paystack popup.
+     * Only the public key is exposed — the secret key stays server-side.
+     * GET /guest/payment/paystack-key
+     * Response: { "publicKey": "pk_..." }
+     */
+    @GetMapping("/paystack-key")
+    public ResponseEntity<Map<String, String>> getGuestPaystackPublicKey() {
+        String pubKey = paystackConfig.getPublicKey() != null ? paystackConfig.getPublicKey() : "";
+        return ResponseEntity.ok(Map.of("publicKey", pubKey));
+    }
+
+    /**
+     * Verifies a Paystack transaction for a guest user after the popup fires onSuccess.
+     * No authentication required — the externalRef / reference is the only secret needed.
+     * GET /guest/payment/verify/{reference}
+     * Response: { "verified": true/false, ... }
+     */
+    @GetMapping("/verify/{reference}")
+    public ResponseEntity<Map<String, Object>> verifyGuestPaystackTransaction(
+            @PathVariable String reference) {
+        try {
+            com.fasterxml.jackson.databind.JsonNode data = paystackPaymentService.verifyTransaction(reference);
+            if (data == null) {
+                return ResponseEntity.ok(Map.of("verified", false, "message", "Verification pending"));
+            }
+            String txStatus = data.path("status").asText("");
+            boolean verified = "success".equalsIgnoreCase(txStatus);
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("verified", verified);
+            result.put("status", txStatus);
+            result.put("reference", reference);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.ok(Map.of("verified", false, "message", "Verification failed"));
+        }
     }
 }

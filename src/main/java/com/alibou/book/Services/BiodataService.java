@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
 public class BiodataService {
 
     private final BiodataRepository biodataRepository;
-    private static final int MINIMUM_AGE = 16;
+    private static final int MINIMUM_AGE = 10;
 
     // ========== PUBLIC CRUD METHODS ========== //
 
@@ -121,7 +121,7 @@ public class BiodataService {
 
     private void validateBiodataForCreation(Biodata biodata) {
         validateAge(biodata.getDob());
-        validateEmailUniqueness(biodata.getEmail());
+//        validateEmailUniqueness(biodata.getEmail());
     }
 
     private void validateBiodataForUpdate(Biodata biodata) {
@@ -147,10 +147,8 @@ public class BiodataService {
 //        System.out.println("=== EMAIL VALIDATION DEBUG ===");
 //        System.out.println("Input email: '" + email + "'");
 //        System.out.println("Email is null: " + (email == null));
-
         boolean exists = emailExists(email);
 //        System.out.println("Email exists: " + exists);
-
         if (exists) {
             String message = email + " already exists. ";
 //            System.out.println("Creating exception with message: '" + message + "'");
