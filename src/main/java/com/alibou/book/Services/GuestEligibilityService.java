@@ -117,4 +117,66 @@ public class GuestEligibilityService {
         candidate.setResultDetails(resultDetails);
         return candidate;
     }
+
+    @Transactional(readOnly = true)
+    public java.util.Optional<EligibilityApiResponse> getEligibilityBySessionId(String sessionId) {
+        return eligibilityRecordRepository.findBySessionId(sessionId)
+                .map(record -> {
+                    // Convert universities
+                    List<com.alibou.book.DTO.EligibilityDTOs.UniversityEligibilityDto> uniDtos = null;
+                    if (record.getUniversities() != null) {
+                        uniDtos = record.getUniversities().stream().map(uni -> {
+                            
+                            List<com.alibou.book.DTO.EligibilityDTOs.ProgramEligibilityDto> progDtos = new java.util.ArrayList<>();
+                            if (uni.getEligiblePrograms() != null) {
+                                progDtos.addAll(uni.getEligiblePrograms().stream().map(prog -> 
+                                    com.alibou.book.DTO.EligibilityDTOs.ProgramEligibilityDto.builder()
+                                        .programName(prog.getName())
+                                        .status("ELIGIBLE")
+                                        .eligibilityPercentage(prog.getPercentage())
+                                        .build()
+                                ).collect(Collectors.toList()));
+                            }
+                            if (uni.getAlternativePrograms() != null) {
+                                progDtos.addAll(uni.getAlternativePrograms().stream().map(prog -> 
+                                    com.alibou.book.DTO.EligibilityDTOs.ProgramEligibilityDto.builder()
+                                        .programName(prog.getName())
+                                        .status("ALTERNATIVE")
+                                        .eligibilityPercentage(prog.getPercentage())
+                                        .build()
+                                ).collect(Collectors.toList()));
+                            }
+                            
+                            return com.alibou.book.DTO.EligibilityDTOs.UniversityEligibilityDto.builder()
+                                .universityName(uni.getUniversityName())
+                                .universityType(uni.getType())
+                                .programs(progDtos)
+                                .build();
+                        }).collect(Collectors.toList());
+                    }
+
+                    // Build summary
+                    long totalUnis = uniDtos != null ? uniDtos.size() : 0;
+                    long totalEligible = uniDtos != null ? uniDtos.stream()
+                            .flatMap(u -> u.getPrograms() != null ? u.getPrograms().stream() : java.util.stream.Stream.empty())
+                            .filter(p -> "ELIGIBLE".equals(p.getStatus()))
+                            .count() : 0;
+                    long totalAlternative = uniDtos != null ? uniDtos.stream()
+                            .flatMap(u -> u.getPrograms() != null ? u.getPrograms().stream() : java.util.stream.Stream.empty())
+                            .filter(p -> "ALTERNATIVE".equals(p.getStatus()))
+                            .count() : 0;
+                            
+                    com.alibou.book.DTO.EligibilityDTOs.EligibilitySummary summary = com.alibou.book.DTO.EligibilityDTOs.EligibilitySummary.builder()
+                        .totalUniversities((int) totalUnis)
+                        .totalEligiblePrograms((int) totalEligible)
+                        .totalAlternativePrograms((int) totalAlternative)
+                        .build();
+                    
+                    return EligibilityApiResponse.builder()
+                        .recordId(record.getId())
+                        .universities(uniDtos)
+                        .summary(summary)
+                        .build();
+                });
+    }
 }

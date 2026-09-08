@@ -105,6 +105,7 @@ public class GuestPaymentController {
                     res.put("paymentStatus", record.getPaymentStatus());
                     res.put("checkStatus", record.getCheckStatus());
                     res.put("candidateName", record.getCandidateName());
+                    res.put("biodataCompleted", record.getBiodata() != null);
                     return ResponseEntity.ok(res);
                 })
                 .orElse(ResponseEntity.notFound().build());

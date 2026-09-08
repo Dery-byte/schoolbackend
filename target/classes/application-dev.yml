@@ -101,16 +101,16 @@ moolre:
 
 
 #  LIVE APIS FOR PAYSTACK
-paystack:
-  secret-key: sk_live_4fac6ff8694aa66928d81fd1d7ca0b55a77b6c1b
-  public-key: pk_live_6504a37e77104d2bbfcccde21b3c77bb055386d4
-  callback-url: http://localhost:8088/api/v1/auth/payments/paystackWebhook
+#paystack:
+#  secret-key: sk_live_4fac6ff8694aa66928d81fd1d7ca0b55a77b6c1b
+#  public-key: pk_live_6504a37e77104d2bbfcccde21b3c77bb055386d4
+#  callback-url: http://localhost:8088/api/v1/auth/payments/paystackWebhook
 
 #TEST PAYSTACK
-#paystack:
-#  secret-key: sk_test_6164a33793554d4ba8f46a26949477eb846d3fc7
-#  public-key: pk_test_8760038da75a2c249d2b5da23fd61a37c282e794
-#  callback-url: http://localhost:8088/api/v1/auth/payments/paystackWebhook
+paystack:
+  secret-key: sk_test_6164a33793554d4ba8f46a26949477eb846d3fc7
+  public-key: pk_test_8760038da75a2c249d2b5da23fd61a37c282e794
+  callback-url: http://localhost:8088/api/v1/auth/payments/paystackWebhook
 
 # ── Active payment gateway (MOOLRE | PAYSTACK) ────────────────────────────
 # Admin can switch at runtime via the Settings page — this is just the default.

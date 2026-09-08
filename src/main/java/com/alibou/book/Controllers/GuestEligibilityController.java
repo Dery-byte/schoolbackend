@@ -29,4 +29,11 @@ public class GuestEligibilityController {
             @Valid @RequestBody GuestSaveTempRequest request) {
         return ResponseEntity.ok(guestEligibilityService.saveTempRecord(request));
     }
+
+    @GetMapping("/session/{sessionId}")
+    public ResponseEntity<EligibilityApiResponse> getEligibilityBySessionId(@PathVariable String sessionId) {
+        return guestEligibilityService.getEligibilityBySessionId(sessionId)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
 }
